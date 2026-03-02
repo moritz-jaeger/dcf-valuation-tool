@@ -61,9 +61,6 @@ def _init_state() -> None:
         if k not in st.session_state:
             st.session_state[k] = v
 
-_init_state()
-
-
 # ─── Data loading (cached) ─────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -714,6 +711,7 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
 # ─── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    _init_state()
     _render_sidebar()
 
     step   = st.session_state.step
