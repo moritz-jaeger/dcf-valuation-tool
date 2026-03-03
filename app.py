@@ -607,9 +607,9 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
     with st.expander("📈  Revenue Growth", expanded=True):
         st.caption(
             "The annual rate at which the company's revenues are expected to grow over the 5-year forecast period. "
-            "Pick a preset or choose 'Other' to enter a custom figure."
+            "Pick a preset or enter a custom figure."
         )
-        options: dict[str, float] = {}
+        options: dict[str, float | None] = {}
         arg = assum.get("analyst_revenue_growth", {})
 
         v = assum.get("revenue_cagr_3yr", {}).get("value")
@@ -618,6 +618,9 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         v = assum.get("revenue_cagr_5yr", {}).get("value")
         if v is not None:
             options[f"Historical 5yr CAGR  ({v:.2%})"] = v
+
+        # Analyst consensus estimates (requires quoteSummary endpoint;
+        # may be unavailable on cloud-hosted environments).
         v = arg.get("next_year", {}).get("value")
         if v is not None:
             options[f"Analyst estimate — next FY  ({v:.2%})"] = v
@@ -625,13 +628,30 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         if v is not None:
             options[f"Analyst estimate — current FY  ({v:.2%})"] = v
 
-        if not options:
-            st.error("No revenue growth estimates available.")
-            growth_rate = 0.05
+        # Recent YoY growth from already-fetched financials — always available.
+        _rev = (data["fin"].get("income_statement") or {}).get("revenue") or {}
+        _ry  = sorted(yr for yr, val in _rev.items() if val is not None)
+        if len(_ry) >= 2:
+            _y1, _y0 = _ry[-1], _ry[-2]
+            _r1, _r0 = _rev[_y1], _rev[_y0]
+            if _r0 and _r1 and _r0 > 0:
+                _yoy = (_r1 - _r0) / _r0
+                options[f"Recent YoY Growth  FY{_y0}→FY{_y1}  ({_yoy:.2%})"] = _yoy
+
+        _CUSTOM = "Custom..."
+        options[_CUSTOM] = None  # always last
+
+        selected = st.radio("", list(options.keys()),
+                            label_visibility="collapsed",
+                            key=f"{k}_growth_radio")
+        if selected == _CUSTOM:
+            growth_rate = st.number_input(
+                "Growth rate (%)", value=5.0, min_value=-50.0, max_value=100.0,
+                step=0.1, format="%.1f",
+                help="Enter your own annual revenue growth assumption for the 5-year forecast.",
+                key=f"{k}_growth_custom",
+            ) / 100
         else:
-            selected    = st.radio("", list(options.keys()),
-                                   label_visibility="collapsed",
-                                   key=f"{k}_growth_radio")
             growth_rate = options[selected]
 
     with st.expander("📊  EBIT Margin & Terminal Growth", expanded=True):
