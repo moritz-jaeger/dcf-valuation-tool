@@ -1,7 +1,7 @@
 """
 app.py
 ------
-Streamlit DCF Valuation Tool — polished UI with animations.
+Streamlit DCF Valuation Tool — professional dark theme UI.
 """
 
 import copy
@@ -38,155 +38,149 @@ st.set_page_config(
 
 # ─── CSS design system ──────────────────────────────────────────────────────
 
-_CSS_BASE = """
+_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-html, body, input, button, textarea, select,
-.stMarkdown, .stText, .stMetric, .stDataFrame,
-[data-testid="stSidebar"] { font-family: 'Inter', -apple-system, sans-serif !important; }
 
-.main .block-container { padding: 2rem 2.5rem 4rem; max-width: 1100px; }
-
-/* ── Animations ──────────────────────────────────── */
-@keyframes fadeInUp {
-  from { opacity:0; transform:translateY(18px); }
-  to   { opacity:1; transform:translateY(0);    }
+/* Global */
+html, body, [data-testid="stApp"] { background: #0A0A0F !important; }
+html, body, input, button, textarea, select, .stMarkdown, [data-testid="stSidebar"] {
+  font-family: 'Inter', -apple-system, sans-serif !important;
 }
-@keyframes scaleIn {
-  from { opacity:0; transform:scale(0.90); }
-  to   { opacity:1; transform:scale(1);    }
-}
-@keyframes popIn {
-  0%   { opacity:0; transform:scale(0.80); }
-  70%  { transform:scale(1.04); }
-  100% { opacity:1; transform:scale(1);    }
-}
+.main .block-container { padding: 2rem 2.5rem 4rem; max-width: 1200px; }
 
-.au  { animation: fadeInUp 0.5s ease both; }
-.au1 { animation: fadeInUp 0.5s ease 0.08s both; }
-.au2 { animation: fadeInUp 0.5s ease 0.16s both; }
-.au3 { animation: fadeInUp 0.5s ease 0.24s both; }
-.au4 { animation: fadeInUp 0.5s ease 0.32s both; }
-.si  { animation: scaleIn  0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
-.pi  { animation: popIn    0.65s cubic-bezier(0.34,1.56,0.64,1) both; }
+/* Hide Streamlit chrome */
+#MainMenu, footer, [data-testid="stDecoration"] { display: none !important; }
+header[data-testid="stHeader"] { background: transparent !important; }
 
-/* ── KPI cards ───────────────────────────────────── */
-.kpi-row  { display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.25rem; }
-.kpi-card {
-  flex:1; min-width:130px;
-  background:#fff;
-  border:1px solid #f0f4f8;
-  border-radius:14px;
-  padding:1rem 1.25rem;
-  box-shadow:0 1px 4px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
-  transition:transform .18s ease, box-shadow .18s ease;
-  animation:fadeInUp .4s ease both;
-}
-.kpi-card:hover { transform:translateY(-3px); box-shadow:0 6px 22px rgba(0,0,0,.09); }
-.kpi-lbl { font-size:.68rem; font-weight:600; color:#94a3b8; text-transform:uppercase;
-           letter-spacing:.07em; margin-bottom:.3rem; }
-.kpi-val { font-size:1.25rem; font-weight:700; color:#0f172a; white-space:nowrap; }
-.kpi-sub { font-size:.72rem; color:#94a3b8; margin-top:.2rem; }
-
-/* ── Result hero ─────────────────────────────────── */
-.result-hero {
-  border-radius:20px; padding:1.8rem 1.5rem; text-align:center;
-  animation:popIn .65s cubic-bezier(0.34,1.56,0.64,1) both;
-  margin:0.5rem 0 1.5rem;
-}
-.result-hero.pos { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:1px solid #86efac; }
-.result-hero.neg { background:linear-gradient(135deg,#fff1f2,#ffe4e6); border:1px solid #fca5a5; }
-.result-pct      { font-size:4.5rem; font-weight:800; line-height:1.05; }
-.result-pct.pos  { color:#15803d; }
-.result-pct.neg  { color:#b91c1c; }
-.result-dir      { font-size:.85rem; font-weight:700; letter-spacing:.15em; margin-top:.4rem; }
-.result-dir.pos  { color:#16a34a; }
-.result-dir.neg  { color:#dc2626; }
-.result-sub      { font-size:.82rem; color:#64748b; margin-top:.3rem; }
-
-/* ── HTML table ──────────────────────────────────── */
-.htable { width:100%; border-collapse:collapse; font-size:.855rem;
-          animation:fadeInUp .4s ease both; }
-.htable th {
-  background:#f8fafc; color:#64748b; font-weight:600; font-size:.70rem;
-  text-transform:uppercase; letter-spacing:.06em;
-  padding:.6rem .9rem; border-bottom:2px solid #e2e8f0;
-  text-align:right; white-space:nowrap;
-}
-.htable th:first-child { text-align:left; }
-.htable td {
-  padding:.52rem .9rem; border-bottom:1px solid #f1f5f9;
-  text-align:right; color:#334155;
-}
-.htable td:first-child { text-align:left; font-weight:500; color:#0f172a; }
-.htable tr:last-child td { border-bottom:none; }
-.htable tr.hl   td { background:#eff6ff; font-weight:700; }
-.htable tr.hlg  td { background:#f0fdf4; font-weight:700; color:#15803d; }
-.pos { color:#16a34a; font-weight:600; }
-.neg { color:#b91c1c; font-weight:600; }
-.muted { color:#94a3b8; }
-
-/* ── Section header ──────────────────────────────── */
-.sec { font-size:1.05rem; font-weight:700; color:#0f172a;
-       padding-bottom:.55rem; border-bottom:2px solid #f1f5f9;
-       margin:1.5rem 0 .9rem; animation:fadeInUp .4s ease both; }
-
-/* ── Sidebar ─────────────────────────────────────── */
+/* Sidebar */
 [data-testid="stSidebar"] {
-  background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%) !important;
-}
-[data-testid="stSidebar"] * { color:#cbd5e1 !important; }
-[data-testid="stSidebar"] code {
-  background:rgba(255,255,255,.12) !important;
-  color:#f1f5f9 !important;
-  border-radius:4px; padding:.1em .35em;
-}
-[data-testid="stSidebar"] hr { border-color:#334155 !important; }
-[data-testid="stSidebar"] .stButton>button {
-  background:rgba(255,255,255,.07) !important;
-  border:1px solid rgba(255,255,255,.12) !important;
-  color:#e2e8f0 !important; border-radius:8px !important;
-  transition:background .2s !important;
-}
-[data-testid="stSidebar"] .stButton>button:hover {
-  background:rgba(255,255,255,.13) !important;
+  background: #13131A !important;
+  border-right: 1px solid #1E1E2E !important;
 }
 
-/* ── Primary button ──────────────────────────────── */
-.stButton>button[kind="primary"] {
-  background:linear-gradient(135deg,#3b82f6,#6366f1) !important;
-  border:none !important; border-radius:10px !important;
-  font-weight:600 !important; font-size:1rem !important;
-  padding:.65rem 2rem !important;
-  box-shadow:0 4px 14px rgba(59,130,246,.35) !important;
-  transition:transform .15s ease, box-shadow .15s ease !important;
+/* Cards */
+.card {
+  background: #13131A;
+  border: 1px solid #1E1E2E;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
 }
-.stButton>button[kind="primary"]:hover {
-  transform:translateY(-2px) !important;
-  box-shadow:0 6px 22px rgba(59,130,246,.45) !important;
+.card-accent {
+  border-left: 3px solid #6C63FF;
 }
-.stButton>button[kind="primary"]:active { transform:translateY(0) !important; }
-</style>
-"""
 
-_CSS_LANDING = """
-<style>
-.stApp { background:linear-gradient(135deg,#0f172a 0%,#1a2744 50%,#0f172a 100%) !important; }
-.main .block-container { max-width:100% !important; padding:0 !important; }
-.stTextInput>div>div>input {
-  background:#1e293b !important;
-  border:1px solid rgba(255,255,255,.18) !important;
-  border-radius:10px !important; color:#fff !important;
-  font-size:1.05rem !important; padding:.75rem 1rem !important;
-  transition:border-color .2s, box-shadow .2s !important;
+/* Buttons */
+.stButton > button {
+  background: #6C63FF !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: background 0.2s !important;
 }
-.stTextInput>div>div>input::placeholder { color:rgba(255,255,255,.35) !important; }
-.stTextInput>div>div>input:focus {
-  border-color:#60a5fa !important;
-  box-shadow:0 0 0 3px rgba(96,165,250,.2) !important;
+.stButton > button:hover { background: #7C75FF !important; }
+
+/* Sliders */
+[data-testid="stSlider"] [role="slider"] { background: #6C63FF !important; }
+[data-testid="stSlider"] > div > div { background: #6C63FF !important; }
+
+/* Radio */
+[data-testid="stRadio"] label { color: #E8E8F0 !important; }
+
+/* Inputs */
+[data-testid="stNumberInput"] input { color: #E8E8F0 !important; background: #1E1E2E !important; }
+
+/* KPI cards (dark) */
+.kpi-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.kpi-card {
+  flex: 1; min-width: 140px;
+  background: #13131A;
+  border: 1px solid #1E1E2E;
+  border-radius: 12px;
+  padding: 16px 20px;
 }
-.stTextInput label { color:rgba(255,255,255,0) !important; height:0 !important;
-                     overflow:hidden !important; }
+.kpi-lbl {
+  font-size: 0.65rem; font-weight: 600; color: #6B6B80;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+}
+.kpi-val {
+  font-size: 1.5rem; font-weight: 700; color: #E8E8F0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.kpi-sub { font-size: 0.7rem; color: #6B6B80; margin-top: 4px; }
+
+/* Section headers */
+.sec {
+  font-size: 1.1rem; font-weight: 700; color: #E8E8F0;
+  margin: 1.5rem 0 0.75rem; letter-spacing: -0.01em;
+}
+
+/* Tables */
+.htable { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.htable th {
+  background: #1E1E2E; color: #6B6B80;
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.07em; padding: 8px 12px; text-align: right;
+}
+.htable th:first-child { text-align: left; }
+.htable td { padding: 9px 12px; color: #E8E8F0; border-bottom: 1px solid #1E1E2E; text-align: right; }
+.htable td:first-child { text-align: left; color: #6B6B80; font-size: 0.83rem; }
+.htable tr:last-child td { border-bottom: none; }
+.htable tr:hover td { background: rgba(108,99,255,0.05); }
+.num { font-family: 'SF Mono', 'Fira Code', monospace; }
+.pos { color: #00D09C !important; }
+.neg { color: #FF4757 !important; }
+.muted { color: #6B6B80; }
+.acc { color: #6C63FF !important; font-weight: 700; }
+
+/* Result hero */
+.result-hero {
+  border-radius: 16px; padding: 2.5rem 2rem; text-align: center;
+  background: #13131A; border: 1px solid #1E1E2E; margin: 0.5rem 0 2rem;
+}
+.result-price {
+  font-size: 5rem; font-weight: 800; color: #E8E8F0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: -0.03em; line-height: 1.1;
+}
+.result-lbl { font-size: 0.75rem; color: #6B6B80; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+.result-cur { font-size: 0.9rem; color: #6B6B80; margin-top: 0.5rem; }
+.result-badge {
+  display: inline-block; padding: 0.35rem 1rem;
+  border-radius: 999px; font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 1.4rem; font-weight: 700; margin-top: 0.75rem;
+}
+.result-badge.pos { background: rgba(0,208,156,0.15); color: #00D09C; }
+.result-badge.neg { background: rgba(255,71,87,0.15); color: #FF4757; }
+.result-note { font-size: 0.83rem; color: #6B6B80; margin-top: 1rem; }
+
+/* Landing */
+.hero-title { font-size: 3.5rem; font-weight: 800; color: #E8E8F0; text-align: center; line-height: 1.15; margin-bottom: 0.5rem; }
+.hero-accent { color: #6C63FF; }
+.hero-sub { font-size: 1.05rem; color: #6B6B80; text-align: center; max-width: 480px; margin: 0 auto 2rem; }
+.chip {
+  display: inline-block; padding: 4px 14px;
+  border: 1px solid #6C63FF; border-radius: 999px;
+  color: #6C63FF; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; margin: 0 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.feat-card {
+  background: #13131A; border: 1px solid #1E1E2E;
+  border-radius: 12px; padding: 20px; text-align: left;
+}
+.feat-icon { font-size: 1.6rem; margin-bottom: 10px; }
+.feat-title { font-size: 0.95rem; font-weight: 700; color: #E8E8F0; margin-bottom: 6px; }
+.feat-desc { font-size: 0.8rem; color: #6B6B80; line-height: 1.5; }
+
+/* Animations */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+.au  { animation: fadeInUp 0.45s ease both; }
+.au1 { animation: fadeInUp 0.45s ease 0.08s both; }
+.au2 { animation: fadeInUp 0.45s ease 0.16s both; }
+.au3 { animation: fadeInUp 0.45s ease 0.24s both; }
 </style>
 """
 
@@ -296,39 +290,54 @@ def _val_cls(v: float | None) -> str:
 
 # ─── HTML helpers ────────────────────────────────────────────────────────────
 
-def _kpi(label: str, value: str, sub: str = "", delay: int = 0) -> str:
+def _kpi(label: str, value: str, sub: str = "") -> str:
     sub_html = f'<div class="kpi-sub">{sub}</div>' if sub else ""
-    d = f"animation-delay:{delay*0.08}s"
-    return (f'<div class="kpi-card" style="{d}">'
+    return (f'<div class="kpi-card">'
             f'<div class="kpi-lbl">{label}</div>'
             f'<div class="kpi-val">{value}</div>{sub_html}</div>')
 
 def _kpi_row(items: list[tuple]) -> None:
     """Render a row of KPI cards. items = [(label, value, sub_optional), ...]"""
     html = '<div class="kpi-row">'
-    for i, item in enumerate(items):
+    for item in items:
         label, value = item[0], item[1]
         sub = item[2] if len(item) > 2 else ""
-        html += _kpi(label, value, sub, i)
+        html += _kpi(label, value, sub)
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
 def _htable(headers: list[str], rows: list[list], highlight_last: bool = False) -> None:
-    """Render a styled HTML table."""
+    """Render a styled dark HTML table."""
     th = "".join(f"<th>{h}</th>" for h in headers)
     body = ""
     for i, row in enumerate(rows):
-        is_last  = i == len(rows) - 1
-        row_cls  = ' class="hl"' if (highlight_last and is_last) else ""
-        tds = "".join(f"<td>{cell}</td>" for cell in row)
-        body += f"<tr{row_cls}>{tds}</tr>"
+        is_last = i == len(rows) - 1
+        tds = ""
+        for j, cell in enumerate(row):
+            # First column: label cell (left-aligned, handled by CSS)
+            # Other columns: wrap numbers in .num span
+            if j == 0:
+                tds += f"<td>{cell}</td>"
+            else:
+                # If already wrapped in HTML tag, don't double-wrap
+                if str(cell).startswith("<"):
+                    if highlight_last and is_last and j == len(row) - 1:
+                        tds += f'<td><span class="num acc">{cell}</span></td>'
+                    else:
+                        tds += f"<td>{cell}</td>"
+                else:
+                    if highlight_last and is_last and j == len(row) - 1:
+                        tds += f'<td><span class="num acc">{cell}</span></td>'
+                    else:
+                        tds += f'<td><span class="num">{cell}</span></td>'
+        body += f"<tr>{tds}</tr>"
     st.markdown(
         f'<table class="htable"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table>',
         unsafe_allow_html=True,
     )
 
-def _sec(title: str) -> None:
-    st.markdown(f'<div class="sec">{title}</div>', unsafe_allow_html=True)
+def _sec(text: str) -> None:
+    st.markdown(f'<div class="sec">{text}</div>', unsafe_allow_html=True)
 
 
 # ─── Sidebar ────────────────────────────────────────────────────────────────
@@ -338,35 +347,73 @@ def _render_sidebar() -> None:
     ticker = st.session_state.ticker
 
     with st.sidebar:
-        st.markdown("## 📊 DCF Valuation")
-        if ticker:
-            st.markdown(f"### {ticker}")
-        st.divider()
+        if ticker and step > 0 and st.session_state.data:
+            ci = st.session_state.data["company_info"]
+            company_name = ci.get("name", ticker)
+            st.markdown(f"""
+            <div style="padding: 1rem 0.5rem;">
+              <div style="font-family:'SF Mono','Fira Code',monospace; font-size:1.8rem;
+                          font-weight:800; color:#6C63FF; letter-spacing:-0.02em;">{ticker}</div>
+              <div style="font-size:0.8rem; color:#6B6B80; margin-bottom:1.5rem;">{company_name}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="padding: 1rem 0.5rem 0.5rem;">
+              <div style="font-size:1.1rem; font-weight:700; color:#E8E8F0;">DCF Valuation</div>
+              <div style="font-size:0.8rem; color:#6B6B80; margin-top:4px;">Institutional-grade analysis</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown("**Progress**")
-        for req, label in [
-            (1, "Company Snapshot"),
-            (1, "Historical FCF"),
-            (1, "Risk Assessment"),
-            (1, "Assumptions"),
-            (2, "Valuation Results"),
-            (2, "Sensitivity Analysis"),
-        ]:
-            icon = "✅" if step >= req else ("▶" if step == req - 1 else "○")
-            st.markdown(f"{icon}  {label}")
+        # 4-step stepper
+        steps = [
+            (1, "Snapshot"),
+            (2, "Assumptions"),
+            (3, "Valuation"),
+            (4, "Results"),
+        ]
+        stepper_html = '<div style="padding: 0 0.5rem; margin-bottom: 1.5rem;">'
+        for idx, (req, label) in enumerate(steps):
+            if step >= req:
+                # Completed
+                circle = '<div style="width:28px;height:28px;border-radius:50%;background:#00D09C;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#0A0A0F;flex-shrink:0;">✓</div>'
+                lbl_style = "color:#E8E8F0;"
+            elif step == req - 1:
+                # Active
+                circle = f'<div style="width:28px;height:28px;border-radius:50%;background:#6C63FF;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;">{idx+1}</div>'
+                lbl_style = "color:#6C63FF; font-weight:600;"
+            else:
+                # Future
+                circle = f'<div style="width:28px;height:28px;border-radius:50%;border:1px solid #1E1E2E;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;color:#6B6B80;flex-shrink:0;">{idx+1}</div>'
+                lbl_style = "color:#6B6B80;"
 
+            stepper_html += f"""
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              {circle}
+              <span style="font-size:0.85rem;{lbl_style}">{label}</span>
+            </div>"""
+        stepper_html += "</div>"
+        st.markdown(stepper_html, unsafe_allow_html=True)
+
+        # Risk score if available
         if step >= 1 and st.session_state.data:
             risk  = st.session_state.data["risk"]
             score = risk.get("overall_score")
             lbl   = risk.get("overall_label", "")
             if score is not None:
-                st.divider()
+                st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:0.5rem 0">', unsafe_allow_html=True)
                 filled = round(score)
                 bar    = "🟢" * filled + "⚫" * (10 - filled)
-                st.markdown(f"**Risk Score**  \n{bar}  \n**{score:.0f}/10** — {lbl}")
+                st.markdown(
+                    f'<div style="font-size:0.75rem;color:#6B6B80;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Risk Score</div>'
+                    f'<div style="font-size:0.85rem;color:#E8E8F0;margin-bottom:4px;">{bar}</div>'
+                    f'<div style="font-family:\'SF Mono\',monospace;font-size:0.9rem;color:#E8E8F0;font-weight:600;">{score:.0f}/10</div>'
+                    f'<div style="font-size:0.75rem;color:#6B6B80;">{lbl}</div>',
+                    unsafe_allow_html=True,
+                )
 
         if step > 0:
-            st.divider()
+            st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1rem 0">', unsafe_allow_html=True)
             if st.button("← New Analysis", use_container_width=True):
                 st.session_state.update(step=0, ticker="", data=None, dcf=None, sens=None)
                 st.rerun()
@@ -375,66 +422,80 @@ def _render_sidebar() -> None:
 # ─── Step 0: Landing ────────────────────────────────────────────────────────
 
 def _render_landing() -> None:
-    st.markdown(_CSS_LANDING, unsafe_allow_html=True)
+    st.markdown("""
+    <div class="au" style="text-align:center; padding: 3rem 0 1.5rem;">
+      <div class="hero-title">Institutional-grade valuation<br><span class="hero-accent">in seconds.</span></div>
+    </div>
+    <div class="au1">
+      <p class="hero-sub">Enter any US stock ticker. Get a DCF valuation, sensitivity analysis, and risk assessment — powered by live market data.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    col_l, col_r = st.columns([1.15, 1], gap="large")
+    _, inp_col, _ = st.columns([1, 2, 1])
+    with inp_col:
+        ticker_input = st.text_input(
+            "ticker",
+            placeholder="e.g. AAPL, TSLA, NVDA",
+            label_visibility="collapsed",
+            key="landing_ticker",
+        ).upper().strip()
 
-    with col_l:
-        st.markdown("""
-        <div style="padding:4rem 1rem 2rem 3rem;">
-          <div class="au" style="margin-bottom:.6rem;">
-            <span style="background:rgba(99,102,241,.22);color:#a5b4fc;
-                  padding:.3rem .9rem;border-radius:999px;font-size:.78rem;font-weight:600;">
-              Automated Equity Research
-            </span>
-          </div>
-          <h1 class="au1" style="font-size:3.4rem;font-weight:800;margin:.8rem 0 .5rem;
-              background:linear-gradient(100deg,#60a5fa 0%,#a78bfa 50%,#f0abfc 100%);
-              -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-              background-clip:text;line-height:1.08;">
-            DCF Valuation
-          </h1>
-          <p class="au2" style="color:#94a3b8;font-size:1.05rem;line-height:1.75;
-              margin-bottom:2.5rem;max-width:400px;">
-            Live financials → DCF model → sensitivity analysis.<br>
-            In seconds, for any US stock.
-          </p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
-        _, inp_col, _ = st.columns([0.18, 1, 0.05])
-        with inp_col:
-            ticker_input = st.text_input(
-                "ticker",
-                placeholder="Enter ticker — e.g. AAPL, MSFT, GOOGL",
-                label_visibility="collapsed",
-            ).upper().strip()
-            st.markdown("<div style='height:.5rem'></div>", unsafe_allow_html=True)
-
-            if st.button("Analyse →", type="primary", use_container_width=True):
-                if not ticker_input:
-                    st.error("Please enter a ticker symbol.")
+        if st.button("Search →", use_container_width=True):
+            if not ticker_input:
+                st.error("Please enter a ticker symbol.")
+            else:
+                with st.spinner(f"Loading {ticker_input}…"):
+                    data = _load_ticker_data(ticker_input)
+                if data["fin"].get("market_data", {}).get("current_price") is None:
+                    st.error(f"Could not find **{ticker_input}**. Check the symbol.")
                 else:
-                    with st.spinner(f"Loading {ticker_input}…"):
-                        data = _load_ticker_data(ticker_input)
+                    st.session_state.update(ticker=ticker_input, data=data, step=1)
+                    st.rerun()
+
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        # Quick-pick chips
+        st.markdown('<div style="text-align:center;margin-bottom:0.5rem;font-size:0.78rem;color:#6B6B80;">Quick picks</div>', unsafe_allow_html=True)
+        chip_c1, chip_c2, chip_c3 = st.columns(3)
+        for col, sym in [(chip_c1, "AAPL"), (chip_c2, "MSFT"), (chip_c3, "NVDA")]:
+            with col:
+                if st.button(sym, use_container_width=True, key=f"chip_{sym}"):
+                    with st.spinner(f"Loading {sym}…"):
+                        data = _load_ticker_data(sym)
                     if data["fin"].get("market_data", {}).get("current_price") is None:
-                        st.error(f"Could not find **{ticker_input}**. Check the symbol.")
+                        st.error(f"Could not find **{sym}**.")
                     else:
-                        st.session_state.update(ticker=ticker_input, data=data, step=1)
+                        st.session_state.update(ticker=sym, data=data, step=1)
                         st.rerun()
 
-    with col_r:
-        st.markdown("<div style='height:3rem'></div>", unsafe_allow_html=True)
-        if _LOTTIE_OK:
-            lottie_data = _load_lottie()
-            if lottie_data:
-                st_lottie(lottie_data, height=380, speed=0.9,
-                          loop=True, quality="high", key="hero_lottie")
-                return
-        # Fallback: decorative text if lottie unavailable
+    # Feature cards
+    st.markdown("<div style='height:2.5rem'></div>", unsafe_allow_html=True)
+    fc1, fc2, fc3 = st.columns(3)
+    with fc1:
         st.markdown("""
-        <div style="display:flex;align-items:center;justify-content:center;
-                    height:380px;font-size:6rem;opacity:.15;">📈</div>
+        <div class="feat-card au1">
+          <div class="feat-icon">📊</div>
+          <div class="feat-title">Live Data</div>
+          <div class="feat-desc">Fetches real-time financials, beta, and Treasury yield automatically</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with fc2:
+        st.markdown("""
+        <div class="feat-card au2">
+          <div class="feat-icon">⚙️</div>
+          <div class="feat-title">DCF Engine</div>
+          <div class="feat-desc">Projects free cash flow using your verified assumptions</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with fc3:
+        st.markdown("""
+        <div class="feat-card au3">
+          <div class="feat-icon">🎯</div>
+          <div class="feat-title">Sensitivity Analysis</div>
+          <div class="feat-desc">See how valuation changes across WACC and growth scenarios</div>
+        </div>
         """, unsafe_allow_html=True)
 
 
@@ -455,24 +516,30 @@ def _render_snapshot(data: dict) -> None:
     score      = risk.get("overall_score")
     rlabel     = risk.get("overall_label", "")
 
+    # Price change over 1y
+    prices = pd_.get("prices", [])
+    if len(prices) >= 2:
+        pct_chg = (prices[-1] / prices[0] - 1)
+        chg_str = f"{'▲' if pct_chg >= 0 else '▼'} {abs(pct_chg):.1%} 1yr"
+    else:
+        chg_str = ""
+
     _kpi_row([
-        ("Company",     ci["name"]),
-        ("Sector",      ci["sector"]),
-        ("Price",       _px(curr_price)),
-        ("Market Cap",  _bil(market_cap)),
-        ("Beta",        f"{beta:.2f}" if beta else "—"),
-        ("Risk Score",  f"{score:.0f}/10" if score is not None else "—", rlabel),
+        ("Current Price",  _px(curr_price), chg_str),
+        ("Market Cap",     _bil(market_cap)),
+        ("Beta",           f"{beta:.2f}" if beta else "—"),
+        ("Sector",         ci["sector"]),
+        ("Risk Score",     f"{score:.0f}/10" if score is not None else "—", rlabel),
     ])
 
     # ── 1-year price chart ────────────────────────────────────────────
     dates  = pd_["dates"]
-    prices = pd_["prices"]
     if dates and prices:
         up         = prices[-1] >= prices[0]
-        line_color = "#16a34a" if up else "#ef4444"
-        fill_color = "rgba(22,163,74,0.07)" if up else "rgba(239,68,68,0.07)"
+        line_color = "#00D09C" if up else "#FF4757"
+        fill_color = "rgba(0,208,156,0.08)" if up else "rgba(255,71,87,0.08)"
         pct_chg    = (prices[-1] / prices[0] - 1)
-        chg_str    = f"{'▲' if up else '▼'} {abs(pct_chg):.1%} past year"
+        chg_label  = f"{'▲' if up else '▼'} {abs(pct_chg):.1%} past year"
 
         fig = go.Figure(go.Scatter(
             x=dates, y=prices, mode="lines",
@@ -481,14 +548,19 @@ def _render_snapshot(data: dict) -> None:
             hovertemplate="<b>%{x}</b><br>$%{y:,.2f}<extra></extra>",
         ))
         fig.update_layout(
-            title=dict(text=f"1-Year Price  ·  {chg_str}",
-                       font=dict(size=13, color="#64748b")),
+            title=dict(text=f"1-Year Price  ·  {chg_label}",
+                       font=dict(size=13, color="#6B6B80")),
             height=240, margin=dict(l=50, r=20, t=38, b=28),
-            showlegend=False, plot_bgcolor="white", paper_bgcolor="white",
-            xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=11)),
-            yaxis=dict(showgrid=True, gridcolor="#f1f5f9", zeroline=False,
-                       tickprefix="$", tickformat=",.0f", tickfont=dict(size=11)),
-            font=dict(family="Inter, sans-serif"),
+            showlegend=False,
+            plot_bgcolor="#13131A", paper_bgcolor="#0A0A0F",
+            xaxis=dict(showgrid=False, zeroline=False,
+                       tickfont=dict(size=11, color="#6B6B80"),
+                       color="#6B6B80"),
+            yaxis=dict(showgrid=True, gridcolor="#1E1E2E", zeroline=False,
+                       tickprefix="$", tickformat=",.0f",
+                       tickfont=dict(size=11, color="#6B6B80"),
+                       color="#6B6B80"),
+            font=dict(family="Inter, sans-serif", color="#E8E8F0"),
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
@@ -503,7 +575,7 @@ def _render_snapshot(data: dict) -> None:
         "Debt Trend  (Total Debt CAGR)":        "Whether total debt is rising or falling — a rising trend increases financial risk over time.",
         "FCF Trend  (normalised slope)":        "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
     }
-    with st.expander("📋  Risk Assessment", expanded=False):
+    with st.expander("📋 Risk Dashboard", expanded=False):
         st.caption(
             "Six financial health checks, each rated 🟢 Healthy · 🟡 Watch · 🔴 Concern. "
             "The overall score (0–10) is shown in the sidebar."
@@ -563,12 +635,12 @@ def _render_fcf_table(data: dict) -> None:
                 row.append('<span class="muted">—</span>')
             elif is_ratio:
                 sup = " †" if method in ("direct", "reported") else ""
-                row.append(f"{v:.2f}×{sup}")
+                row.append(f'<span class="num">{v:.2f}×{sup}</span>')
             else:
                 cls = _val_cls(v) if key == "fcf" else ""
                 sup = " †" if key == "fcf" and method in ("direct", "reported") else ""
                 txt = f"{_bil(v)}{sup}"
-                row.append(f'<span class="{cls}">{txt}</span>' if cls else txt)
+                row.append(f'<span class="num {cls}">{txt}</span>' if cls else f'<span class="num">{txt}</span>')
         rows.append(row)
 
     col_tbl, col_meta = st.columns([3, 1])
@@ -734,11 +806,20 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         ke_prev   = (rfr / 100) + beta * (erp / 100)
         kd_at_pre = (kd  / 100) * (1 - tc / 100)
         wacc_pre  = ke_prev * (eq_w / 100) + kd_at_pre * (de_w / 100)
-        st.info(
-            f"**WACC preview** — "
-            f"Ke = {rfr:.2f}% + {beta:.2f} × {erp:.2f}% = **{ke_prev:.2%}**  |  "
-            f"Kd(AT) = **{kd_at_pre:.2%}**  |  **WACC = {wacc_pre:.2%}**"
-        )
+
+        # WACC live preview as large purple number
+        st.markdown(f"""
+        <div style="background:#1E1E2E;border-radius:10px;padding:16px 20px;margin-top:8px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.65rem;font-weight:600;color:#6B6B80;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">WACC Preview</div>
+            <div style="font-family:'SF Mono','Fira Code',monospace;font-size:2rem;font-weight:800;color:#6C63FF;">{wacc_pre:.2%}</div>
+          </div>
+          <div style="font-size:0.82rem;color:#6B6B80;line-height:1.6;">
+            Ke = {rfr:.2f}% + {beta:.2f} × {erp:.2f}% = <span style="color:#E8E8F0;font-family:'SF Mono','Fira Code',monospace;">{ke_prev:.2%}</span><br>
+            Kd(AT) = <span style="color:#E8E8F0;font-family:'SF Mono','Fira Code',monospace;">{kd_at_pre:.2%}</span>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     return dict(
         growth_rate=growth_rate, ebit_margin=ebit_margin_pct / 100,
@@ -782,16 +863,16 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     # ── Hero ──────────────────────────────────────────────────────────
     if ud is not None:
-        sign    = "+" if ud >= 0 else ""
-        cls     = "pos" if ud >= 0 else "neg"
-        dir_txt = "▲  UPSIDE" if ud >= 0 else "▼  DOWNSIDE"
+        sign     = "+" if ud >= 0 else ""
+        ud_cls   = "pos" if ud >= 0 else "neg"
         _, col_hero, _ = st.columns([1, 2, 1])
         with col_hero:
             st.markdown(f"""
-            <div class="result-hero {cls}">
-              <div class="result-pct {cls}">{sign}{ud:.1%}</div>
-              <div class="result-dir {cls}">{dir_txt}</div>
-              <div class="result-sub">Implied {_px(imp)}  ·  Current {_px(cur)}</div>
+            <div class="result-hero">
+              <div class="result-lbl">Implied Share Price</div>
+              <div class="result-price">{_px(imp)}</div>
+              <div class="result-cur">vs {_px(cur)} current price</div>
+              <div class="result-badge {ud_cls}">{sign}{ud:.1%}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -804,21 +885,26 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
         tv_pct    = (pv_tv / ev * 100) if (pv_tv and ev) else None
         direction = "undervalued" if ud >= 0 else "overvalued"
         tv_note   = f" — {tv_pct:.0f}% of Enterprise Value comes from the terminal value" if tv_pct else ""
-        st.info(
-            f"**What the model is saying:** At a WACC of {_pct(wb.get('wacc'))}, growing revenue at "
-            f"{_pct(inp.get('revenue_growth_rate'))} with {_pct(inp.get('ebit_margin'))} EBIT margins, "
-            f"the business appears **{direction}** versus its current price of {_px(cur)}. "
-            f"The main driver of value is the terminal value assumption (long-run growth rate of "
-            f"{_pct(inp.get('terminal_growth_rate'))}){tv_note}. "
-            f"Use the sensitivity tables below to see how much the implied price changes if these assumptions shift."
-        )
+        st.markdown(f"""
+        <div style="background:#13131A;border:1px solid #1E1E2E;border-left:3px solid #6C63FF;
+                    border-radius:10px;padding:14px 18px;margin-bottom:1.5rem;font-size:0.88rem;color:#6B6B80;line-height:1.65;">
+          <span style="color:#E8E8F0;font-weight:600;">What the model is saying:</span>
+          At a WACC of <span style="color:#6C63FF;font-family:'SF Mono','Fira Code',monospace;">{_pct(wb.get('wacc'))}</span>,
+          growing revenue at <span style="color:#6C63FF;font-family:'SF Mono','Fira Code',monospace;">{_pct(inp.get('revenue_growth_rate'))}</span>
+          with <span style="color:#6C63FF;font-family:'SF Mono','Fira Code',monospace;">{_pct(inp.get('ebit_margin'))}</span> EBIT margins,
+          the business appears <span style="color:{'#00D09C' if ud >= 0 else '#FF4757'};font-weight:600;">{direction}</span>
+          versus its current price of {_px(cur)}.
+          The main driver of value is the terminal value assumption
+          (long-run growth rate of <span style="color:#6C63FF;font-family:'SF Mono','Fira Code',monospace;">{_pct(inp.get('terminal_growth_rate'))}</span>){tv_note}.
+          Use the sensitivity tables below to see how much the implied price changes if these assumptions shift.
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── WACC build-up + bridge ────────────────────────────────────────
     col_wacc, col_bridge = st.columns(2)
 
     with col_wacc:
-        st.markdown('<div class="sec" style="margin-top:0">WACC Build-Up</div>',
-                    unsafe_allow_html=True)
+        _sec("WACC Build-Up")
         st.caption("WACC blends the cost of equity (RFR + β × ERP, via CAPM) with the after-tax cost of debt, weighted by capital structure. It is the discount rate applied to every projected cash flow.")
         wb = dcf.get("wacc_buildup", {})
         _htable(
@@ -832,14 +918,13 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
                 ["After-tax Cost of Debt", _pct(wb.get("after_tax_cost_of_debt"))],
                 ["Equity Weight",          _pct(wb.get("equity_weight"))],
                 ["Debt Weight",            _pct(wb.get("debt_weight"))],
-                ["<strong>WACC</strong>",  f"<strong>{_pct(wb.get('wacc'))}</strong>"],
+                ["WACC",                   _pct(wb.get("wacc"))],
             ],
             highlight_last=True,
         )
 
     with col_bridge:
-        st.markdown('<div class="sec" style="margin-top:0">Equity Bridge</div>',
-                    unsafe_allow_html=True)
+        _sec("Equity Bridge")
         st.caption("Enterprise Value is the total value of the business. Subtract net debt (debt minus cash) and divide by shares outstanding to arrive at the implied value per share.")
         bridge = dcf.get("bridge", {})
         ev     = dcf.get("enterprise_value")
@@ -848,31 +933,31 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
         tv_pct = (pv_tv / ev * 100) if (pv_tv and ev) else None
         shs    = bridge.get("shares_outstanding")
         shs_s  = f"{shs/1e9:.2f}B" if shs else "—"
-        tv_s   = _bil(pv_tv) + (f"  <span class='muted'>({tv_pct:.0f}% of EV)</span>"
+        tv_s   = _bil(pv_tv) + (f'  <span class="muted">({tv_pct:.0f}% of EV)</span>'
                                  if tv_pct else "")
-        imp_s  = (f'<span class="{"pos" if (ud or 0) >= 0 else "neg"}">'
-                  f'{_px(imp)}</span>')
+        imp_cls = "pos" if (ud or 0) >= 0 else "neg"
+        imp_s  = f'<span class="{imp_cls}">{_px(imp)}</span>'
 
         _htable(
             ["Item", "Value"],
             [
-                ["PV of FCFs",          _bil(pv_sum)],
+                ["PV of FCFs",           _bil(pv_sum)],
                 ["PV of Terminal Value", tv_s],
-                ["Enterprise Value",    _bil(ev)],
-                ["(−) Total Debt",      _bil(bridge.get("total_debt"))],
-                ["(+) Cash",            _bil(bridge.get("cash_and_equivalents"))],
-                ["Equity Value",        _bil(bridge.get("equity_value"))],
-                ["Shares Outstanding",  shs_s],
-                [f"<strong>Implied Price</strong>", imp_s],
-                ["Current Price",       _px(cur)],
+                ["Enterprise Value",     _bil(ev)],
+                ["(−) Total Debt",       _bil(bridge.get("total_debt"))],
+                ["(+) Cash",             _bil(bridge.get("cash_and_equivalents"))],
+                ["Equity Value",         _bil(bridge.get("equity_value"))],
+                ["Shares Outstanding",   shs_s],
+                ["Implied Price",        imp_s],
+                ["Current Price",        _px(cur)],
             ],
             highlight_last=False,
         )
 
-    st.divider()
+    st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1.5rem 0">', unsafe_allow_html=True)
 
     # ── FCF projection ────────────────────────────────────────────────
-    st.markdown('<div class="sec">5-Year FCF Projection</div>', unsafe_allow_html=True)
+    _sec("5-Year FCF Projection")
     st.caption("Revenue grows at the selected rate; the EBIT margin converts revenue to operating profit; the FCF/EBIT ratio converts that to cash flow. Each year's FCF is then discounted back to today using WACC to get its present value.")
     proj    = dcf.get("projection", {})
     inp     = dcf.get("inputs", {})
@@ -905,9 +990,9 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     # ── Sensitivity heatmaps ──────────────────────────────────────────
     if sens:
-        st.divider()
-        st.markdown('<div class="sec">Sensitivity Analysis</div>', unsafe_allow_html=True)
-        st.caption("Each cell shows the implied upside or downside if two key assumptions change simultaneously. Green = model says the stock is undervalued; red = overvalued. The blue-outlined cell is your base case.")
+        st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1.5rem 0">', unsafe_allow_html=True)
+        _sec("Sensitivity Analysis")
+        st.caption("Each cell shows the implied upside or downside if two key assumptions change simultaneously. Green = model says the stock is undervalued; red = overvalued. The purple-outlined cell is your base case.")
         tab1, tab2 = st.tabs([
             "Table 1 — WACC × Terminal Growth Rate",
             "Table 2 — Revenue Growth × EBIT Margin",
@@ -968,20 +1053,21 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
     fig = go.Figure(go.Heatmap(
         z=z_plot, x=x_coords, y=y_coords,
         text=t_plot, texttemplate="%{text}",
-        textfont=dict(size=11, family="Inter", color="#0f172a"),
+        textfont=dict(size=11, family="'SF Mono', 'Fira Code', monospace", color="#E8E8F0"),
         customdata=custom,
         colorscale=[
-            [0.00, "#7f1d1d"],
-            [0.25, "#fca5a5"],
-            [0.50, "#f1f5f9"],
-            [0.75, "#86efac"],
-            [1.00, "#14532d"],
+            [0.00, "#FF4757"],
+            [0.50, "#1E1E2E"],
+            [1.00, "#00D09C"],
         ],
         zmin=-zmax, zmid=0, zmax=zmax,
         colorbar=dict(
-            title=dict(text="Upside %", font=dict(family="Inter", size=12)),
+            title=dict(text="Upside %", font=dict(family="Inter", size=12, color="#6B6B80")),
             tickformat=".0f", ticksuffix="%",
-            tickfont=dict(family="Inter", size=11),
+            tickfont=dict(family="Inter", size=11, color="#6B6B80"),
+            tickcolor="#6B6B80",
+            bgcolor="#13131A",
+            bordercolor="#1E1E2E",
             thickness=14, len=0.85,
         ),
         hovertemplate=(
@@ -997,36 +1083,40 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
         xref="x", yref="y",
         x0=b_col - 0.5, x1=b_col + 0.5,
         y0=b_row_inv - 0.5, y1=b_row_inv + 0.5,
-        line=dict(color="#1d4ed8", width=3),
-        fillcolor="rgba(29,78,216,0.08)",
+        line=dict(color="#6C63FF", width=3),
+        fillcolor="rgba(108,99,255,0.12)",
     )
 
     fig.update_layout(
         xaxis=dict(
-            title=dict(text=col_label, font=dict(size=12)),
+            title=dict(text=col_label, font=dict(size=12, color="#6B6B80")),
             tickmode="array", tickvals=x_coords, ticktext=col_lbls,
             showgrid=False, zeroline=False,
+            tickfont=dict(color="#6B6B80"),
+            color="#6B6B80",
         ),
         yaxis=dict(
-            title=dict(text=row_label, font=dict(size=12)),
+            title=dict(text=row_label, font=dict(size=12, color="#6B6B80")),
             tickmode="array", tickvals=y_coords, ticktext=row_lbls,
             showgrid=False, zeroline=False,
+            tickfont=dict(color="#6B6B80"),
+            color="#6B6B80",
         ),
         height=420,
         margin=dict(l=80, r=80, t=16, b=60),
-        font=dict(family="Inter, sans-serif", size=11),
-        plot_bgcolor="#f8fafc",
-        paper_bgcolor="white",
+        font=dict(family="Inter, sans-serif", size=11, color="#E8E8F0"),
+        plot_bgcolor="#1E1E2E",
+        paper_bgcolor="#13131A",
     )
     st.plotly_chart(fig, use_container_width=True)
-    st.caption("Blue shading = base case assumptions")
+    st.caption("Purple outline = base case assumptions")
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main() -> None:
     _init_state()
-    st.markdown(_CSS_BASE, unsafe_allow_html=True)
+    st.markdown(_CSS, unsafe_allow_html=True)
     _render_sidebar()
 
     step   = st.session_state.step
@@ -1043,17 +1133,16 @@ def main() -> None:
         return
 
     _render_snapshot(data)
-    st.divider()
+    st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1.5rem 0">', unsafe_allow_html=True)
     _render_fcf_table(data)
-    st.divider()
+    st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1.5rem 0">', unsafe_allow_html=True)
 
     user_vals = _render_assumptions(data, ticker)
     st.markdown("<div style='height:.5rem'></div>", unsafe_allow_html=True)
 
     _, col_btn, _ = st.columns([1, 2, 1])
     with col_btn:
-        run_clicked = st.button("▶  Run Valuation", type="primary",
-                                use_container_width=True, key="run_btn")
+        run_clicked = st.button("Run Valuation →", use_container_width=True, key="run_btn")
 
     if run_clicked:
         assum_mod, fin_mod = _apply_overrides(data, user_vals)
@@ -1075,7 +1164,7 @@ def main() -> None:
         st.rerun()
 
     if step >= 2 and st.session_state.dcf is not None:
-        st.divider()
+        st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:1.5rem 0">', unsafe_allow_html=True)
         _render_results(st.session_state.dcf, st.session_state.sens)
 
 
