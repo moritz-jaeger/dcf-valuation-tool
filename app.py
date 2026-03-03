@@ -227,7 +227,7 @@ def _init_state() -> None:
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _load_ticker_data(symbol: str) -> dict[str, Any]:
-    # v5 — beta fallback from historical returns; bust stale cloud cache
+    # v6 — fix beta fallback tz mismatch; bust stale cloud cache
     fin         = fetch_financial_data(symbol)
     fcf         = calculate_fcf(fin)
     assum       = build_assumptions(symbol, fin)
