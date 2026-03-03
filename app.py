@@ -30,7 +30,7 @@ from risk           import assess_risk
 
 st.set_page_config(
     page_title="DCF Valuation",
-    page_icon="📊",
+    page_icon="◈",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -40,7 +40,18 @@ st.set_page_config(
 
 _CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  font-style: normal; line-height: 1; display: inline-block; white-space: nowrap;
+  text-transform: none; word-wrap: normal; direction: ltr;
+}
+.feat-icon .material-symbols-outlined {
+  font-size: 1.8rem; color: #6C63FF;
+  background: rgba(108,99,255,0.12); border-radius: 10px;
+  padding: 8px; display: inline-flex; align-items: center; justify-content: center;
+}
 
 /* Global */
 html, body, [data-testid="stApp"] { background: #0A0A0F !important; }
@@ -406,7 +417,7 @@ def _render_sidebar() -> None:
             if score is not None:
                 st.markdown('<hr style="border:none;border-top:1px solid #1E1E2E;margin:0.5rem 0">', unsafe_allow_html=True)
                 filled = round(score)
-                bar    = "🟢" * filled + "⚫" * (10 - filled)
+                bar    = '<span style="color:#00D09C;font-size:0.85rem;">●</span>' * filled + '<span style="color:#2A2A3A;font-size:0.85rem;">●</span>' * (10 - filled)
                 st.markdown(
                     f'<div style="font-size:0.75rem;color:#6B6B80;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Risk Score</div>'
                     f'<div style="font-size:0.85rem;color:#E8E8F0;margin-bottom:4px;">{bar}</div>'
@@ -479,7 +490,7 @@ def _render_landing() -> None:
     with fc1:
         st.markdown("""
         <div class="feat-card au1">
-          <div class="feat-icon">📊</div>
+          <div class="feat-icon"><span class="material-symbols-outlined">monitoring</span></div>
           <div class="feat-title">Live Data</div>
           <div class="feat-desc">Fetches real-time financials, beta, and Treasury yield automatically</div>
         </div>
@@ -487,7 +498,7 @@ def _render_landing() -> None:
     with fc2:
         st.markdown("""
         <div class="feat-card au2">
-          <div class="feat-icon">⚙️</div>
+          <div class="feat-icon"><span class="material-symbols-outlined">calculate</span></div>
           <div class="feat-title">DCF Engine</div>
           <div class="feat-desc">Projects free cash flow using your verified assumptions</div>
         </div>
@@ -495,7 +506,7 @@ def _render_landing() -> None:
     with fc3:
         st.markdown("""
         <div class="feat-card au3">
-          <div class="feat-icon">🎯</div>
+          <div class="feat-icon"><span class="material-symbols-outlined">scatter_plot</span></div>
           <div class="feat-title">Sensitivity Analysis</div>
           <div class="feat-desc">See how valuation changes across WACC and growth scenarios</div>
         </div>
@@ -578,13 +589,18 @@ def _render_snapshot(data: dict) -> None:
         "Debt Trend  (Total Debt CAGR)":        "Whether total debt is rising or falling — a rising trend increases financial risk over time.",
         "FCF Trend  (normalised slope)":        "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
     }
-    with st.expander("📋 Risk Dashboard", expanded=False):
+    with st.expander("Risk Dashboard", expanded=False):
         st.caption(
-            "Six financial health checks, each rated 🟢 Healthy · 🟡 Watch · 🔴 Concern. "
+            "Six financial health checks, each rated Healthy · Watch · Concern. "
             "The overall score (0–10) is shown in the sidebar."
         )
         metrics = risk.get("metrics", {})
-        BADGE   = {"green": "🟢", "amber": "🟡", "red": "🔴", "na": "⚪"}
+        BADGE   = {
+            "green": '<span style="color:#00D09C;">●</span>',
+            "amber": '<span style="color:#F59E0B;">●</span>',
+            "red":   '<span style="color:#FF4757;">●</span>',
+            "na":    '<span style="color:#6B6B80;">●</span>',
+        }
         rows = [
             [m["label"], m["value_str"],
              BADGE.get(m["rating"], "?"), m["note"],
@@ -663,7 +679,7 @@ def _render_fcf_table(data: dict) -> None:
         st.markdown(html, unsafe_allow_html=True)
 
     if fcf.get("fcf_ebit_volatility_flag"):
-        st.warning("⚠️ High FCF/EBIT volatility detected.")
+        st.warning("High FCF/EBIT volatility detected.")
 
 
 # ─── Step 1c: Assumptions panel ─────────────────────────────────────────────
@@ -679,7 +695,7 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         "Values are pre-filled from live data and analyst estimates; adjust them to reflect your own view."
     )
 
-    with st.expander("📈  Revenue Growth", expanded=True):
+    with st.expander("Revenue Growth", expanded=True):
         st.caption(
             "The annual rate at which the company's revenues are expected to grow over the 5-year forecast period. "
             "Pick a preset or enter a custom figure."
@@ -729,7 +745,7 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         else:
             growth_rate = options[selected]
 
-    with st.expander("📊  EBIT Margin & Terminal Growth", expanded=True):
+    with st.expander("EBIT Margin & Terminal Growth", expanded=True):
         st.caption(
             "EBIT margin is operating profit as a share of revenue — it determines how much of each sales dollar "
             "flows through to cash. Terminal growth rate is the assumed growth rate after year 5, in perpetuity."
@@ -757,7 +773,7 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
                 key=f"{k}_tgr_slider",
             )
 
-    with st.expander("⚙️  WACC Assumptions", expanded=True):
+    with st.expander("WACC Assumptions", expanded=True):
         st.caption(
             "WACC (Weighted Average Cost of Capital) is the discount rate applied to future cash flows — "
             "a higher WACC means future cash is worth less today, producing a lower implied price. "
@@ -987,7 +1003,7 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     warns = dcf.get("warnings", [])
     if warns:
-        with st.expander(f"⚠️  {len(warns)} valuation warning(s)", expanded=False):
+        with st.expander(f"{len(warns)} valuation warning(s)", expanded=False):
             for w in warns:
                 st.warning(w)
 
