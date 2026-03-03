@@ -5,18 +5,11 @@ Streamlit DCF Valuation Tool — professional dark theme UI.
 """
 
 import copy
-import requests
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 import yfinance as yf
 from typing import Any
-
-try:
-    from streamlit_lottie import st_lottie
-    _LOTTIE_OK = True
-except ImportError:
-    _LOTTIE_OK = False
 
 from data_fetcher   import fetch_financial_data
 from fcf_calculator import calculate_fcf
@@ -199,23 +192,6 @@ header[data-testid="stHeader"] { background: transparent !important; }
 """
 
 
-# ─── Lottie loader ──────────────────────────────────────────────────────────
-
-@st.cache_data(show_spinner=False)
-def _load_lottie() -> dict | None:
-    for url in [
-        "https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json",
-        "https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json",
-    ]:
-        try:
-            r = requests.get(url, timeout=6)
-            if r.status_code == 200:
-                return r.json()
-        except Exception:
-            continue
-    return None
-
-
 # ─── Session state ──────────────────────────────────────────────────────────
 
 def _init_state() -> None:
@@ -380,25 +356,30 @@ def _render_sidebar() -> None:
             """, unsafe_allow_html=True)
 
         # 4-step stepper
-        steps = [
-            (1, "Snapshot"),
-            (2, "Assumptions"),
-            (3, "Valuation"),
-            (4, "Results"),
-        ]
+        # step=0: landing; step=1: data loaded, reviewing; step=2: valuation run
+        # Snapshot=done at step>=1; Assumptions=active at step=1, done at step>=2
+        # Valuation=active at step=1 (pending run), done at step>=2
+        # Results=active/done at step>=2
+        steps = ["Snapshot", "Assumptions", "Valuation", "Results"]
+
+        def _step_status(label: str) -> str:
+            if step >= 2:
+                return "done"
+            if step == 1:
+                return "done" if label == "Snapshot" else "active" if label == "Assumptions" else "future"
+            return "future"
+
         stepper_html = '<div style="padding: 0 0.5rem; margin-bottom: 1.5rem;">'
-        for idx, (req, label) in enumerate(steps):
-            if step >= req:
-                # Completed
-                circle = '<div style="width:28px;height:28px;border-radius:50%;background:#00D09C;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#0A0A0F;flex-shrink:0;">✓</div>'
+        for idx, label in enumerate(steps):
+            status = _step_status(label)
+            if status == "done":
+                circle    = '<div style="width:28px;height:28px;border-radius:50%;background:#00D09C;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#0A0A0F;flex-shrink:0;">✓</div>'
                 lbl_style = "color:#E8E8F0;"
-            elif step == req - 1:
-                # Active
-                circle = f'<div style="width:28px;height:28px;border-radius:50%;background:#6C63FF;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;">{idx+1}</div>'
+            elif status == "active":
+                circle    = f'<div style="width:28px;height:28px;border-radius:50%;background:#6C63FF;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;">{idx+1}</div>'
                 lbl_style = "color:#6C63FF; font-weight:600;"
             else:
-                # Future
-                circle = f'<div style="width:28px;height:28px;border-radius:50%;border:1px solid #1E1E2E;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;color:#6B6B80;flex-shrink:0;">{idx+1}</div>'
+                circle    = f'<div style="width:28px;height:28px;border-radius:50%;border:1px solid #1E1E2E;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;color:#6B6B80;flex-shrink:0;">{idx+1}</div>'
                 lbl_style = "color:#6B6B80;"
 
             stepper_html += f"""
@@ -513,6 +494,18 @@ def _render_landing() -> None:
         """, unsafe_allow_html=True)
 
 
+# ─── Risk metric descriptions (module-level constant) ───────────────────────
+
+_RISK_DESC: dict[str, str] = {
+    "Leverage  (Debt / EBIT)":               "How many years of operating profit it would take to repay all debt — lower is safer.",
+    "Interest Coverage  (EBIT / Interest)":  "Whether earnings comfortably cover interest payments — higher means less financial stress.",
+    "FCF Volatility  (σ of FCF/EBIT)":       "How consistent free cash flow is relative to earnings — stable FCF makes forecasting more reliable.",
+    "Revenue Consistency  (σ of YoY growth)":"Whether revenue grows steadily — erratic sales make future projections less certain.",
+    "Debt Trend  (Total Debt CAGR)":          "Whether total debt is rising or falling — a rising trend increases financial risk over time.",
+    "FCF Trend  (normalised slope)":          "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
+}
+
+
 # ─── Step 1a: Company snapshot ──────────────────────────────────────────────
 
 def _render_snapshot(data: dict) -> None:
@@ -583,14 +576,6 @@ def _render_snapshot(data: dict) -> None:
         st.info("Price history unavailable.")
 
     # ── Risk table (collapsed) ────────────────────────────────────────
-    _RISK_DESC = {
-        "Leverage  (Debt / EBIT)":             "How many years of operating profit it would take to repay all debt — lower is safer.",
-        "Interest Coverage  (EBIT / Interest)":"Whether earnings comfortably cover interest payments — higher means less financial stress.",
-        "FCF Volatility  (σ of FCF/EBIT)":     "How consistent free cash flow is relative to earnings — stable FCF makes forecasting more reliable.",
-        "Revenue Consistency  (σ of YoY growth)": "Whether revenue grows steadily — erratic sales make future projections less certain.",
-        "Debt Trend  (Total Debt CAGR)":        "Whether total debt is rising or falling — a rising trend increases financial risk over time.",
-        "FCF Trend  (normalised slope)":        "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
-    }
     with st.expander("Risk Dashboard", expanded=False):
         st.markdown(
             '<p style="font-size:0.85rem;color:#6B6B80;margin:0 0 0.75rem;">'
@@ -828,6 +813,10 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
                 "Debt Weight (%)", value=de_w_def, step=0.50, format="%.1f", key=f"{k}_dew",
                 help="Debt's share of total capital. Because debt is cheaper than equity (especially after the tax shield), more debt lowers WACC.",
             )
+
+        weight_sum = eq_w + de_w
+        if abs(weight_sum - 100.0) > 0.1:
+            st.warning(f"Equity Weight + Debt Weight = {weight_sum:.1f}% (should sum to 100%). WACC preview may be incorrect.")
 
         ke_prev   = (rfr / 100) + beta * (erp / 100)
         kd_at_pre = (kd  / 100) * (1 - tc / 100)
