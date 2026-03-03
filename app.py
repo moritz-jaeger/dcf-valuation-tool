@@ -813,61 +813,93 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
     b_row      = table["base_row_idx"]
     b_col      = table["base_col_idx"]
     n_rows     = len(row_values)
+    n_cols     = len(col_values)
 
     z_data, text_data = [], []
     for ri in range(n_rows):
         z_row, t_row = [], []
-        for ci in range(len(col_values)):
+        for ci in range(n_cols):
             ud = upsides[ri][ci]
             z_row.append(ud * 100 if ud is not None else None)
-            mark = " ▪" if (ri == b_row and ci == b_col) else ""
-            t_row.append(f"{ud:+.1%}{mark}" if ud is not None else "—")
+            t_row.append(f"{ud:+.1%}" if ud is not None else "—")
         z_data.append(z_row)
         text_data.append(t_row)
 
+    # Reverse rows so the highest row value appears at the top of the chart
     z_plot    = z_data[::-1]
     t_plot    = text_data[::-1]
     row_lbls  = [f"{v:.2%}" for v in reversed(row_values)]
     col_lbls  = [f"{v:.1%}" for v in col_values]
     b_row_inv = n_rows - 1 - b_row
 
+    # Use numeric axes with ticktext labels so shape coordinates are unambiguous
+    x_coords = list(range(n_cols))
+    y_coords = list(range(n_rows))
+
     flat = [v for row in z_plot for v in row if v is not None]
     zmax = max((abs(v) for v in flat), default=20)
     zmax = max(zmax, 5)
 
+    # Build customdata (row_lbl, col_lbl) for hover
+    custom = []
+    for ri, rl in enumerate(row_lbls):
+        custom.append([[rl, col_lbls[ci]] for ci in range(n_cols)])
+
     fig = go.Figure(go.Heatmap(
-        z=z_plot, x=col_lbls, y=row_lbls,
-        text=t_plot, texttemplate="%{text}", textfont=dict(size=10, family="Inter"),
+        z=z_plot, x=x_coords, y=y_coords,
+        text=t_plot, texttemplate="%{text}",
+        textfont=dict(size=11, family="Inter", color="#0f172a"),
+        customdata=custom,
         colorscale=[
-            [0.00, "#991b1b"],
+            [0.00, "#7f1d1d"],
             [0.25, "#fca5a5"],
-            [0.50, "#f8fafc"],
+            [0.50, "#f1f5f9"],
             [0.75, "#86efac"],
-            [1.00, "#15803d"],
+            [1.00, "#14532d"],
         ],
         zmin=-zmax, zmid=0, zmax=zmax,
-        colorbar=dict(title="Upside %", tickformat=".0f", ticksuffix="%",
-                      tickfont=dict(family="Inter", size=11)),
-        hovertemplate=(f"{row_label}: %{{y}}<br>{col_label}: %{{x}}<br>"
-                       "Upside: %{text}<extra></extra>"),
+        colorbar=dict(
+            title=dict(text="Upside %", font=dict(family="Inter", size=12)),
+            tickformat=".0f", ticksuffix="%",
+            tickfont=dict(family="Inter", size=11),
+            thickness=14, len=0.85,
+        ),
+        hovertemplate=(
+            f"<b>{row_label}</b>: %{{customdata[0]}}<br>"
+            f"<b>{col_label}</b>: %{{customdata[1]}}<br>"
+            "<b>Upside</b>: %{text}<extra></extra>"
+        ),
     ))
 
+    # Base-case highlight — numeric coords are exact category positions
     fig.add_shape(
         type="rect",
+        xref="x", yref="y",
         x0=b_col - 0.5, x1=b_col + 0.5,
         y0=b_row_inv - 0.5, y1=b_row_inv + 0.5,
-        line=dict(color="#1d4ed8", width=2.5),
-        fillcolor="rgba(0,0,0,0)",
+        line=dict(color="#1d4ed8", width=3),
+        fillcolor="rgba(29,78,216,0.08)",
     )
 
     fig.update_layout(
-        xaxis_title=col_label, yaxis_title=row_label,
-        height=400, margin=dict(l=70, r=60, t=20, b=60),
+        xaxis=dict(
+            title=dict(text=col_label, font=dict(size=12)),
+            tickmode="array", tickvals=x_coords, ticktext=col_lbls,
+            showgrid=False, zeroline=False,
+        ),
+        yaxis=dict(
+            title=dict(text=row_label, font=dict(size=12)),
+            tickmode="array", tickvals=y_coords, ticktext=row_lbls,
+            showgrid=False, zeroline=False,
+        ),
+        height=420,
+        margin=dict(l=80, r=80, t=16, b=60),
         font=dict(family="Inter, sans-serif", size=11),
-        plot_bgcolor="white", paper_bgcolor="white",
+        plot_bgcolor="#f8fafc",
+        paper_bgcolor="white",
     )
     st.plotly_chart(fig, use_container_width=True)
-    st.caption("Blue outline = base case  ·  ▪ = base cell")
+    st.caption("Blue shading = base case assumptions")
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────
