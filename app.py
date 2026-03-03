@@ -499,15 +499,28 @@ def _render_snapshot(data: dict) -> None:
         st.info("Price history unavailable.")
 
     # ── Risk table (collapsed) ────────────────────────────────────────
+    _RISK_DESC = {
+        "Leverage  (Debt / EBIT)":             "How many years of operating profit it would take to repay all debt — lower is safer.",
+        "Interest Coverage  (EBIT / Interest)":"Whether earnings comfortably cover interest payments — higher means less financial stress.",
+        "FCF Volatility  (σ of FCF/EBIT)":     "How consistent free cash flow is relative to earnings — stable FCF makes forecasting more reliable.",
+        "Revenue Consistency  (σ of YoY growth)": "Whether revenue grows steadily — erratic sales make future projections less certain.",
+        "Debt Trend  (Total Debt CAGR)":        "Whether total debt is rising or falling — a rising trend increases financial risk over time.",
+        "FCF Trend  (normalised slope)":        "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
+    }
     with st.expander("📋  Risk Assessment", expanded=False):
+        st.caption(
+            "Six financial health checks, each rated 🟢 Healthy · 🟡 Watch · 🔴 Concern. "
+            "The overall score (0–10) is shown in the sidebar."
+        )
         metrics = risk.get("metrics", {})
         BADGE   = {"green": "🟢", "amber": "🟡", "red": "🔴", "na": "⚪"}
         rows = [
             [m["label"], m["value_str"],
-             BADGE.get(m["rating"], "?"), m["note"]]
+             BADGE.get(m["rating"], "?"), m["note"],
+             _RISK_DESC.get(m["label"], "")]
             for m in metrics.values()
         ]
-        _htable(["Metric", "Value", "Rating", "Note"], rows)
+        _htable(["Metric", "Value", "Rating", "Note", "What it measures"], rows)
 
 
 # ─── Step 1b: Historical FCF ────────────────────────────────────────────────
@@ -518,6 +531,11 @@ def _render_fcf_table(data: dict) -> None:
     years  = sorted(annual.keys())
 
     _sec("Historical Free Cash Flow")
+    st.caption(
+        "Free Cash Flow (FCF) is the cash a company generates after funding its operations "
+        "and capital investments — the core input to the DCF model. "
+        "FCF/EBIT shows what fraction of operating profit actually converts to real cash."
+    )
 
     if not years:
         st.info("No FCF data available.")
@@ -585,8 +603,16 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
     k     = ticker
 
     _sec("Forecast Assumptions")
+    st.caption(
+        "These inputs drive the entire DCF model — small changes here can move the implied price significantly. "
+        "Values are pre-filled from live data and analyst estimates; adjust them to reflect your own view."
+    )
 
     with st.expander("📈  Revenue Growth", expanded=True):
+        st.caption(
+            "The annual rate at which the company's revenues are expected to grow over the 5-year forecast period. "
+            "Pick a preset or choose 'Other' to enter a custom figure."
+        )
         options: dict[str, float] = {}
         arg = assum.get("analyst_revenue_growth", {})
 
@@ -613,24 +639,39 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
             growth_rate = options[selected]
 
     with st.expander("📊  EBIT Margin & Terminal Growth", expanded=True):
+        st.caption(
+            "EBIT margin is operating profit as a share of revenue — it determines how much of each sales dollar "
+            "flows through to cash. Terminal growth rate is the assumed growth rate after year 5, in perpetuity."
+        )
         base_margin = assum.get("ebit_margin_avg", {}).get("value") or 0.20
         col_em, col_tg = st.columns(2)
         with col_em:
             ebit_margin_pct = st.slider(
                 "EBIT Margin", 0.0, 60.0,
                 round(base_margin * 100, 1), 0.1, format="%.1f%%",
-                help=f"Historical avg: {_pct(base_margin)}",
+                help=(
+                    f"Operating profit as a percentage of revenue. "
+                    f"Historical average: {_pct(base_margin)}. "
+                    "Higher margins mean more of each sales dollar converts to profit."
+                ),
                 key=f"{k}_ebit_slider",
             )
         with col_tg:
             tgr_pct = st.slider(
                 "Terminal Growth Rate", 0.5, 5.0, 2.5, 0.1, format="%.1f%%",
-                help="Gordon Growth perpetuity rate (typically 2–3%)",
+                help=(
+                    "The assumed annual growth rate of free cash flow beyond the 5-year forecast — "
+                    "effectively forever. Should not exceed long-run GDP growth (typically 2–3%)."
+                ),
                 key=f"{k}_tgr_slider",
             )
 
     with st.expander("⚙️  WACC Assumptions", expanded=True):
-        st.caption("Values in % (e.g. `4.25` for 4.25%). Beta is dimensionless.")
+        st.caption(
+            "WACC (Weighted Average Cost of Capital) is the discount rate applied to future cash flows — "
+            "a higher WACC means future cash is worth less today, producing a lower implied price. "
+            "Values in % (e.g. `4.25` for 4.25%). Beta is dimensionless."
+        )
 
         rfr_def  = (assum.get("risk_free_rate",      {}).get("value") or 0.0425) * 100
         erp_def  = (assum.get("equity_risk_premium", {}).get("value") or 0.045)  * 100
@@ -643,15 +684,36 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            rfr  = st.number_input("Risk-free Rate (%)",      value=rfr_def,  step=0.05, format="%.2f", key=f"{k}_rfr")
-            erp  = st.number_input("Equity Risk Premium (%)", value=erp_def,  step=0.05, format="%.2f", key=f"{k}_erp")
-            beta = st.number_input("Beta",                    value=beta_def, step=0.01, format="%.2f", key=f"{k}_beta")
+            rfr  = st.number_input(
+                "Risk-free Rate (%)", value=rfr_def, step=0.05, format="%.2f", key=f"{k}_rfr",
+                help="The yield on a risk-free asset such as the 10-year US Treasury — sets the baseline return investors require before taking any equity risk.",
+            )
+            erp  = st.number_input(
+                "Equity Risk Premium (%)", value=erp_def, step=0.05, format="%.2f", key=f"{k}_erp",
+                help="The extra return investors demand for owning stocks rather than risk-free bonds — typically 4–6% for the US market.",
+            )
+            beta = st.number_input(
+                "Beta", value=beta_def, step=0.01, format="%.2f", key=f"{k}_beta",
+                help="Measures how much the stock moves relative to the market. Beta > 1 means more volatile than the market; < 1 means less volatile.",
+            )
         with c2:
-            kd   = st.number_input("Cost of Debt (%)",        value=kd_def,   step=0.05, format="%.2f", key=f"{k}_kd")
-            tc   = st.number_input("Tax Rate (%)",            value=tc_def,   step=0.10, format="%.1f", key=f"{k}_tc")
+            kd   = st.number_input(
+                "Cost of Debt (%)", value=kd_def, step=0.05, format="%.2f", key=f"{k}_kd",
+                help="The average interest rate the company pays on its debt. Used to compute the after-tax cost of debt (Kd × (1 − tax rate)).",
+            )
+            tc   = st.number_input(
+                "Tax Rate (%)", value=tc_def, step=0.10, format="%.1f", key=f"{k}_tc",
+                help="The effective corporate tax rate, used to calculate the tax shield on debt interest — debt is cheaper on an after-tax basis.",
+            )
         with c3:
-            eq_w = st.number_input("Equity Weight (%)",       value=eq_w_def, step=0.50, format="%.1f", key=f"{k}_eqw")
-            de_w = st.number_input("Debt Weight (%)",         value=de_w_def, step=0.50, format="%.1f", key=f"{k}_dew")
+            eq_w = st.number_input(
+                "Equity Weight (%)", value=eq_w_def, step=0.50, format="%.1f", key=f"{k}_eqw",
+                help="Equity's share of total capital (market cap ÷ (market cap + total debt)). Equity is costlier than debt, so a higher equity weight raises WACC.",
+            )
+            de_w = st.number_input(
+                "Debt Weight (%)", value=de_w_def, step=0.50, format="%.1f", key=f"{k}_dew",
+                help="Debt's share of total capital. Because debt is cheaper than equity (especially after the tax shield), more debt lowers WACC.",
+            )
 
         ke_prev   = (rfr / 100) + beta * (erp / 100)
         kd_at_pre = (kd  / 100) * (1 - tc / 100)
@@ -692,6 +754,11 @@ def _apply_overrides(data: dict, user: dict) -> tuple[dict, dict]:
 
 def _render_results(dcf: dict, sens: dict | None) -> None:
     _sec("Valuation Results")
+    st.caption(
+        "The DCF model projects free cash flows over 5 years, estimates a terminal value for everything beyond, "
+        "and discounts both back to today using WACC. The implied price is what the model says the stock is worth "
+        "under your assumptions — compare it to the current price to see upside or downside."
+    )
 
     ud  = dcf.get("upside_downside")
     imp = dcf.get("implied_share_price")
@@ -712,12 +779,31 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
             </div>
             """, unsafe_allow_html=True)
 
+    # ── DCF narrative ─────────────────────────────────────────────────
+    if ud is not None and imp is not None:
+        inp       = dcf.get("inputs", {})
+        wb        = dcf.get("wacc_buildup", {})
+        pv_tv     = dcf.get("pv_terminal_value")
+        ev        = dcf.get("enterprise_value")
+        tv_pct    = (pv_tv / ev * 100) if (pv_tv and ev) else None
+        direction = "undervalued" if ud >= 0 else "overvalued"
+        tv_note   = f" — {tv_pct:.0f}% of Enterprise Value comes from the terminal value" if tv_pct else ""
+        st.info(
+            f"**What the model is saying:** At a WACC of {_pct(wb.get('wacc'))}, growing revenue at "
+            f"{_pct(inp.get('revenue_growth_rate'))} with {_pct(inp.get('ebit_margin'))} EBIT margins, "
+            f"the business appears **{direction}** versus its current price of {_px(cur)}. "
+            f"The main driver of value is the terminal value assumption (long-run growth rate of "
+            f"{_pct(inp.get('terminal_growth_rate'))}){tv_note}. "
+            f"Use the sensitivity tables below to see how much the implied price changes if these assumptions shift."
+        )
+
     # ── WACC build-up + bridge ────────────────────────────────────────
     col_wacc, col_bridge = st.columns(2)
 
     with col_wacc:
         st.markdown('<div class="sec" style="margin-top:0">WACC Build-Up</div>',
                     unsafe_allow_html=True)
+        st.caption("WACC blends the cost of equity (RFR + β × ERP, via CAPM) with the after-tax cost of debt, weighted by capital structure. It is the discount rate applied to every projected cash flow.")
         wb = dcf.get("wacc_buildup", {})
         _htable(
             ["Component", "Value"],
@@ -738,6 +824,7 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
     with col_bridge:
         st.markdown('<div class="sec" style="margin-top:0">Equity Bridge</div>',
                     unsafe_allow_html=True)
+        st.caption("Enterprise Value is the total value of the business. Subtract net debt (debt minus cash) and divide by shares outstanding to arrive at the implied value per share.")
         bridge = dcf.get("bridge", {})
         ev     = dcf.get("enterprise_value")
         pv_sum = dcf.get("pv_fcf_sum")
@@ -770,6 +857,7 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     # ── FCF projection ────────────────────────────────────────────────
     st.markdown('<div class="sec">5-Year FCF Projection</div>', unsafe_allow_html=True)
+    st.caption("Revenue grows at the selected rate; the EBIT margin converts revenue to operating profit; the FCF/EBIT ratio converts that to cash flow. Each year's FCF is then discounted back to today using WACC to get its present value.")
     proj    = dcf.get("projection", {})
     inp     = dcf.get("inputs", {})
     base_yr = dcf.get("base_year")
@@ -803,15 +891,18 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
     if sens:
         st.divider()
         st.markdown('<div class="sec">Sensitivity Analysis</div>', unsafe_allow_html=True)
+        st.caption("Each cell shows the implied upside or downside if two key assumptions change simultaneously. Green = model says the stock is undervalued; red = overvalued. The blue-outlined cell is your base case.")
         tab1, tab2 = st.tabs([
             "Table 1 — WACC × Terminal Growth Rate",
             "Table 2 — Revenue Growth × EBIT Margin",
         ])
         with tab1:
+            st.caption("Vary the discount rate (WACC, vertical axis) and the long-run growth assumption (horizontal axis). Lower WACC or higher terminal growth both increase the implied price.")
             t1 = sens.get("table1")
             if t1:
                 _render_heatmap(t1, "WACC", "Terminal Growth Rate")
         with tab2:
+            st.caption("Vary the top-line growth rate (vertical axis) and the profit margin (horizontal axis). Companies with both fast growth and wide margins command the highest valuations.")
             t2 = sens.get("table2")
             if t2:
                 _render_heatmap(t2, "Revenue Growth", "EBIT Margin")
