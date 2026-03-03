@@ -157,7 +157,7 @@ def _get_statement(ticker: yf.Ticker, statement: str) -> pd.DataFrame | None:
     """
     attr_map = {
         "income":    ["income_stmt", "financials"],
-        "balance":   ["balance_sheet", "quarterly_balance_sheet"],
+        "balance":   ["balance_sheet"],          # annual only — quarterly data breaks NWC deltas
         "cashflow":  ["cashflow", "cash_flow"],
     }
     for attr in attr_map.get(statement, []):

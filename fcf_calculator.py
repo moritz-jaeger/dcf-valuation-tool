@@ -183,55 +183,67 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
     annual: dict[str, dict[str, Any]] = {}
 
     for i, yr in enumerate(all_years):
-        ebit  = _get(inc.get("ebit"), yr)
-        da    = _get(inc.get("depreciation_amortization"), yr)
+        ebit      = _get(inc.get("ebit"), yr)
+        da        = _get(inc.get("depreciation_amortization"), yr)
         capex_raw = _get(cf.get("capital_expenditure"), yr)
-        nwc   = nwc_by_year.get(yr)
+        opcf      = _get(cf.get("operating_cash_flow"), yr)
+        nwc       = nwc_by_year.get(yr)
 
         # CapEx: yfinance reports as negative cash outflow; we need the
         # positive magnitude for the formula (FCF = ... − CapEx).
         capex = abs(capex_raw) if capex_raw is not None else None
 
         # ΔNWC = NWC(t) − NWC(t−1); undefined for the first available year
-        prior_yr = all_years[i - 1] if i > 0 else None
+        prior_yr  = all_years[i - 1] if i > 0 else None
         prior_nwc = nwc_by_year.get(prior_yr) if prior_yr else None
-        delta_nwc = _sub(nwc, prior_nwc)
-
-        if prior_yr is None:
-            delta_nwc = None  # No prior year in dataset at all
+        delta_nwc = _sub(nwc, prior_nwc) if prior_yr is not None else None
 
         # NOPAT = EBIT × (1 − tc)
         nopat = _mul(ebit, (1.0 - effective_tax_rate)) if ebit is not None else None
 
-        # FCF = NOPAT + D&A − ΔNWC − CapEx
+        # ── FCF ──────────────────────────────────────────────────────────
+        # Primary method:  FCF = NOPAT + D&A − ΔNWC − CapEx
+        # Fallback method: FCF = Operating CF − CapEx
+        #   (Operating CF already incorporates ΔNWC via the indirect method)
         fcf = None
-        fcf_components_ok = all(v is not None for v in [nopat, da, delta_nwc, capex])
-        if fcf_components_ok:
+        fcf_method = None
+
+        if all(v is not None for v in [nopat, da, delta_nwc, capex]):
             fcf = nopat + da - delta_nwc - capex
+            fcf_method = "ebit"
+        elif opcf is not None and capex is not None:
+            fcf = opcf - capex
+            fcf_method = "direct"
         else:
-            missing_parts = [
-                name for name, val in [
-                    ("NOPAT", nopat), ("D&A", da),
-                    ("ΔNWC", delta_nwc), ("CapEx", capex)
-                ]
-                if val is None
+            missing_ebit = [
+                n for n, v in [("NOPAT", nopat), ("D&A", da),
+                                ("ΔNWC", delta_nwc), ("CapEx", capex)]
+                if v is None
             ]
-            if not (prior_yr is None and missing_parts == ["ΔNWC"]):
-                # Suppress the trivially-expected "no prior year" case
+            missing_direct = [
+                n for n, v in [("Operating CF", opcf), ("CapEx", capex)]
+                if v is None
+            ]
+            # Suppress the trivially-expected "first year has no prior NWC" case
+            if not (prior_yr is None and missing_ebit == ["ΔNWC"]):
                 calc_warnings.append(
-                    f"{yr}: FCF could not be computed — missing: {', '.join(missing_parts)}."
+                    f"{yr}: FCF could not be computed — "
+                    f"EBIT method missing {missing_ebit}; "
+                    f"direct method missing {missing_direct}."
                 )
 
         fcf_ebit_ratio = _div(fcf, ebit)
 
         annual[yr] = {
-            "ebit":          ebit,
-            "nopat":         nopat,
-            "da":            da,
-            "nwc":           nwc,
-            "delta_nwc":     delta_nwc,
-            "capex":         capex,        # positive magnitude
-            "fcf":           fcf,
+            "ebit":           ebit,
+            "nopat":          nopat,
+            "da":             da,
+            "nwc":            nwc,
+            "delta_nwc":      delta_nwc,
+            "capex":          capex,       # positive magnitude
+            "opcf":           opcf,
+            "fcf":            fcf,
+            "fcf_method":     fcf_method,  # "ebit" | "direct" | None
             "fcf_ebit_ratio": fcf_ebit_ratio,
         }
 
@@ -340,6 +352,7 @@ def print_fcf_summary(result: dict[str, Any]) -> None:
         "ebit":          "EBIT",
         "nopat":         f"NOPAT  (tc={tc:.1%})" if tc else "NOPAT",
         "da":            "D&A",
+        "opcf":          "Operating CF",
         "nwc":           "NWC",
         "delta_nwc":     "  ΔNWC",
         "capex":         "CapEx",

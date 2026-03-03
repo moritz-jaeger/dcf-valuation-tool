@@ -524,31 +524,44 @@ def _render_fcf_table(data: dict) -> None:
 
     headers = [""] + [f"FY{yr}" for yr in years]
     rows_def = [
-        ("EBIT",       "ebit",           False),
-        ("D&A",        "da",             False),
-        ("ΔNWC",       "delta_nwc",      False),
-        ("CapEx",      "capex",          False),
-        ("FCF",        "fcf",            False),
-        ("FCF / EBIT", "fcf_ebit_ratio", True),
+        ("EBIT",        "ebit",           False),
+        ("D&A",         "da",             False),
+        ("Operating CF","opcf",           False),
+        ("ΔNWC",        "delta_nwc",      False),
+        ("CapEx",       "capex",          False),
+        ("FCF",         "fcf",            False),
+        ("FCF / EBIT",  "fcf_ebit_ratio", True),
     ]
+
+    # Track whether any year used the direct (Operating CF) fallback
+    uses_direct = any(
+        annual.get(yr, {}).get("fcf_method") == "direct" for yr in years
+    )
 
     rows = []
     for label, key, is_ratio in rows_def:
         row = [label]
         for yr in years:
-            v = annual.get(yr, {}).get(key)
+            yr_data = annual.get(yr, {})
+            v       = yr_data.get(key)
+            method  = yr_data.get("fcf_method")
             if v is None:
                 row.append('<span class="muted">—</span>')
             elif is_ratio:
-                row.append(f"{v:.2f}×")
+                sup = " †" if method == "direct" else ""
+                row.append(f"{v:.2f}×{sup}")
             else:
                 cls = _val_cls(v) if key == "fcf" else ""
-                row.append(f'<span class="{cls}">{_bil(v)}</span>' if cls else _bil(v))
+                sup = " †" if key == "fcf" and method == "direct" else ""
+                txt = f"{_bil(v)}{sup}"
+                row.append(f'<span class="{cls}">{txt}</span>' if cls else txt)
         rows.append(row)
 
     col_tbl, col_meta = st.columns([3, 1])
     with col_tbl:
         _htable(headers, rows)
+        if uses_direct:
+            st.caption("† FCF = Operating CF − CapEx (balance sheet NWC unavailable for this year)")
     with col_meta:
         tc   = fcf.get("effective_tax_rate")
         avg3 = fcf.get("fcf_ebit_3yr_avg")
