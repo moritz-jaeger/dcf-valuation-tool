@@ -3,3 +3,5 @@ plotly==6.5.2
 yfinance==1.2.0
 pandas==2.3.3
 numpy==2.4.2
+streamlit-lottie==0.0.5
+requests==2.32.5
