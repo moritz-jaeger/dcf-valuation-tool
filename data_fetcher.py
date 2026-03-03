@@ -100,10 +100,21 @@ BALANCE_ALIASES: dict[str, list[str]] = {
 
 CASHFLOW_ALIASES: dict[str, list[str]] = {
     "operating_cash_flow": [
+        # yfinance 1.x newer format
         "Operating Cash Flow",
         "OperatingCashFlow",
+        # yfinance legacy / Yahoo Finance older naming
         "Total Cash From Operating Activities",
         "Cash From Operating Activities",
+        "Net Cash From Operating Activities",
+        "Net Cash Provided By Operating Activities",
+        "Cash Flows From Operating Activities",
+        "Cash Generated From Operating Activities",
+        # yfinance 0.2.x / some tickers
+        "CashFlowFromContinuingOperatingActivities",
+        "Net Cash From Continuing Operations",
+        # Fuzzy sentinel: "~" prefix triggers substring scan of the df index
+        "~operating cash",
     ],
     "capital_expenditure": [
         "Capital Expenditure",
@@ -111,6 +122,7 @@ CASHFLOW_ALIASES: dict[str, list[str]] = {
         "Capital Expenditures",
         "Purchase Of Property Plant And Equipment",
         "PurchaseOfPropertyPlantAndEquipment",
+        "~capital expenditure",
     ],
 }
 
@@ -123,13 +135,27 @@ def _extract_row(df: pd.DataFrame, aliases: list[str], warn_name: str, warnings:
     """
     Try each alias in order; return a year-keyed dict of values for the first
     matching row, or None if none found (adding a warning entry).
+
+    Aliases prefixed with "~" trigger a fuzzy substring scan of the DataFrame
+    index (all keywords after "~" must appear in the row name, case-insensitive).
     """
-    for alias in aliases:
+    exact = [a for a in aliases if not a.startswith("~")]
+    fuzzy = [a[1:].lower().split() for a in aliases if a.startswith("~")]
+
+    for alias in exact:
         if alias in df.index:
             series = df.loc[alias]
-            # Convert Timestamp index to year strings
             return {str(ts.year): _safe_float(v) for ts, v in series.items()}
-    warnings.append(f"Could not find '{warn_name}' — tried: {aliases}")
+
+    # Fuzzy fallback: find the first df index row that contains all keywords
+    for kws in fuzzy:
+        for idx in df.index:
+            idx_lower = str(idx).lower()
+            if all(kw in idx_lower for kw in kws):
+                series = df.loc[idx]
+                return {str(ts.year): _safe_float(v) for ts, v in series.items()}
+
+    warnings.append(f"Could not find '{warn_name}' — tried: {exact}")
     return None
 
 
@@ -157,7 +183,7 @@ def _get_statement(ticker: yf.Ticker, statement: str) -> pd.DataFrame | None:
     """
     attr_map = {
         "income":    ["income_stmt", "financials"],
-        "balance":   ["balance_sheet"],          # annual only — quarterly data breaks NWC deltas
+        "balance":   ["balance_sheet", "quarterly_balance_sheet"],
         "cashflow":  ["cashflow", "cash_flow"],
     }
     for attr in attr_map.get(statement, []):

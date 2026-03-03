@@ -202,35 +202,36 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
         nopat = _mul(ebit, (1.0 - effective_tax_rate)) if ebit is not None else None
 
         # ── FCF ──────────────────────────────────────────────────────────
-        # Primary method:  FCF = NOPAT + D&A − ΔNWC − CapEx
-        # Fallback method: FCF = Operating CF − CapEx
-        #   (Operating CF already incorporates ΔNWC via the indirect method)
+        # Primary method:  FCF = Operating CF − CapEx
+        #   Operating CF (reported via the indirect method) already incorporates
+        #   ΔNWC, so this is the most data-rich formula — it only needs the
+        #   cash flow statement, which is typically complete across all years.
+        # Secondary method: FCF = NOPAT + D&A − ΔNWC − CapEx
+        #   Used when Operating CF is unavailable but full balance sheet data is.
         fcf = None
         fcf_method = None
 
-        if all(v is not None for v in [nopat, da, delta_nwc, capex]):
-            fcf = nopat + da - delta_nwc - capex
-            fcf_method = "ebit"
-        elif opcf is not None and capex is not None:
+        if opcf is not None and capex is not None:
             fcf = opcf - capex
             fcf_method = "direct"
+        elif all(v is not None for v in [nopat, da, delta_nwc, capex]):
+            fcf = nopat + da - delta_nwc - capex
+            fcf_method = "ebit"
         else:
+            missing_direct = [
+                n for n, v in [("Operating CF", opcf), ("CapEx", capex)]
+                if v is None
+            ]
             missing_ebit = [
                 n for n, v in [("NOPAT", nopat), ("D&A", da),
                                 ("ΔNWC", delta_nwc), ("CapEx", capex)]
                 if v is None
             ]
-            missing_direct = [
-                n for n, v in [("Operating CF", opcf), ("CapEx", capex)]
-                if v is None
-            ]
-            # Suppress the trivially-expected "first year has no prior NWC" case
-            if not (prior_yr is None and missing_ebit == ["ΔNWC"]):
-                calc_warnings.append(
-                    f"{yr}: FCF could not be computed — "
-                    f"EBIT method missing {missing_ebit}; "
-                    f"direct method missing {missing_direct}."
-                )
+            calc_warnings.append(
+                f"{yr}: FCF could not be computed — "
+                f"direct method missing {missing_direct}; "
+                f"EBIT method missing {missing_ebit}."
+            )
 
         fcf_ebit_ratio = _div(fcf, ebit)
 
