@@ -193,7 +193,7 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     fetched_warnings: list[str] = []
 
     # ------------------------------------------------------------------
-    # Download ticker
+    # Download ticker (browser session avoids cloud IP blocks)
     # ------------------------------------------------------------------
     try:
         ticker = yf.Ticker(ticker_symbol)
