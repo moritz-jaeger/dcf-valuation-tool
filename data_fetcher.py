@@ -328,6 +328,27 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     market_data["sector"]   = info.get("sector") or None
     market_data["industry"] = info.get("industry") or None
 
+    # Beta fallback: compute from 1-yr historical returns vs S&P 500 when ticker.info
+    # is unavailable (e.g. rate-limited on cloud hosts).
+    if market_data["beta"] is None:
+        try:
+            stock_hist = ticker.history(period="1y")
+            mkt_hist   = yf.download("^GSPC", period="1y", progress=False, auto_adjust=True)
+            if not stock_hist.empty and not mkt_hist.empty:
+                sr = stock_hist["Close"].pct_change().dropna()
+                mr = mkt_hist["Close"]
+                if isinstance(mr, pd.DataFrame):
+                    mr = mr.iloc[:, 0]
+                mr = mr.pct_change().dropna()
+                both = pd.concat([sr.rename("s"), mr.rename("m")], axis=1).dropna()
+                if len(both) > 30:
+                    cov_mat = both.cov()
+                    market_data["beta"] = round(
+                        cov_mat.loc["s", "m"] / cov_mat.loc["m", "m"], 3
+                    )
+        except Exception:
+            pass
+
     # 3) history fallback — last resort for current price
     if market_data["current_price"] is None:
         try:
