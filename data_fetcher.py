@@ -230,13 +230,30 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     cashflow_data = _extract(cashflow_df, CASHFLOW_ALIASES)
 
     # ------------------------------------------------------------------
-    # Market data from ticker.info
+    # Market data — fast_info first (reliable in cloud), ticker.info as
+    # secondary, ticker.history as last-resort price fallback
     # ------------------------------------------------------------------
-    market_data: dict[str, Any] = {}
+    market_data: dict[str, Any] = {
+        "current_price": None,
+        "shares_outstanding": None,
+        "market_cap": None,
+        "beta": None,
+    }
+
+    # 1) fast_info — lightweight endpoint, works reliably on Streamlit Cloud
+    try:
+        fi = ticker.fast_info
+        market_data["current_price"]     = _safe_float(getattr(fi, "last_price",  None))
+        market_data["shares_outstanding"] = _safe_float(getattr(fi, "shares",      None))
+        market_data["market_cap"]         = _safe_float(getattr(fi, "market_cap",  None))
+    except Exception as exc:
+        fetched_warnings.append(f"fast_info unavailable: {exc}")
+
+    # 2) ticker.info — fills beta and any gaps left by fast_info
+    info: dict = {}
     try:
         info = ticker.info or {}
     except Exception as exc:
-        info = {}
         fetched_warnings.append(f"Could not retrieve ticker.info: {exc}")
 
     def _info_field(keys: list[str], label: str) -> float | None:
@@ -247,18 +264,30 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         fetched_warnings.append(f"Could not find market data field '{label}' — tried: {keys}")
         return None
 
-    market_data["current_price"] = _info_field(
-        ["currentPrice", "regularMarketPrice", "previousClose"], "current_price"
-    )
-    market_data["shares_outstanding"] = _info_field(
-        ["sharesOutstanding", "impliedSharesOutstanding"], "shares_outstanding"
-    )
-    market_data["market_cap"] = _info_field(
-        ["marketCap"], "market_cap"
-    )
-    market_data["beta"] = _info_field(
-        ["beta", "beta3Year"], "beta"
-    )
+    if market_data["current_price"] is None:
+        market_data["current_price"] = _info_field(
+            ["currentPrice", "regularMarketPrice", "previousClose"], "current_price"
+        )
+    if market_data["shares_outstanding"] is None:
+        market_data["shares_outstanding"] = _info_field(
+            ["sharesOutstanding", "impliedSharesOutstanding"], "shares_outstanding"
+        )
+    if market_data["market_cap"] is None:
+        market_data["market_cap"] = _info_field(["marketCap"], "market_cap")
+
+    market_data["beta"] = _info_field(["beta", "beta3Year"], "beta")
+
+    # 3) history fallback — last resort for current price
+    if market_data["current_price"] is None:
+        try:
+            hist = ticker.history(period="5d")
+            if not hist.empty:
+                close = hist["Close"]
+                if isinstance(close, pd.DataFrame):
+                    close = close.iloc[:, 0]
+                market_data["current_price"] = _safe_float(close.iloc[-1])
+        except Exception as exc:
+            fetched_warnings.append(f"Price history fallback failed: {exc}")
 
     # ------------------------------------------------------------------
     # Assemble result
