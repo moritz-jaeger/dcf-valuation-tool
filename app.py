@@ -169,7 +169,7 @@ _CSS_LANDING = """
 .stApp { background:linear-gradient(135deg,#0f172a 0%,#1a2744 50%,#0f172a 100%) !important; }
 .main .block-container { max-width:100% !important; padding:0 !important; }
 .stTextInput>div>div>input {
-  background:rgba(255,255,255,.08) !important;
+  background:#1e293b !important;
   border:1px solid rgba(255,255,255,.18) !important;
   border-radius:10px !important; color:#fff !important;
   font-size:1.05rem !important; padding:.75rem 1rem !important;
@@ -227,13 +227,17 @@ def _load_ticker_data(symbol: str) -> dict[str, Any]:
     assum       = build_assumptions(symbol, fin)
     risk_result = assess_risk(fin, fcf)
 
+    t = yf.Ticker(symbol)
+    info: dict = {}
+    hist = pd.DataFrame()
     try:
-        t    = yf.Ticker(symbol)
         info = t.info or {}
+    except Exception:
+        pass
+    try:
         hist = t.history(period="1y")
     except Exception:
-        info = {}
-        hist = pd.DataFrame()
+        pass
 
     company_info = {
         "name":     info.get("longName") or info.get("shortName") or symbol,

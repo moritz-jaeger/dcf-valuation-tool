@@ -201,7 +201,28 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         return {"ticker": ticker_symbol, "error": str(exc), "warnings": [str(exc)]}
 
     # ------------------------------------------------------------------
-    # Financial statements
+    # Warmup — fast_info uses the chart API (no crumb needed) and
+    # establishes the curl_cffi session + Yahoo Finance cookies.
+    # The quoteSummary endpoint (financial statements) requires a crumb
+    # that can only be fetched after cookies are in place, so fast_info
+    # must run first.
+    # ------------------------------------------------------------------
+    market_data: dict[str, Any] = {
+        "current_price": None,
+        "shares_outstanding": None,
+        "market_cap": None,
+        "beta": None,
+    }
+    try:
+        fi = ticker.fast_info
+        market_data["current_price"]      = _safe_float(getattr(fi, "last_price", None))
+        market_data["shares_outstanding"] = _safe_float(getattr(fi, "shares",     None))
+        market_data["market_cap"]         = _safe_float(getattr(fi, "market_cap", None))
+    except Exception as exc:
+        fetched_warnings.append(f"fast_info unavailable: {exc}")
+
+    # ------------------------------------------------------------------
+    # Financial statements (require crumb — session must be warmed up)
     # ------------------------------------------------------------------
     income_df  = _get_statement(ticker, "income")
     balance_df = _get_statement(ticker, "balance")
@@ -230,25 +251,8 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     cashflow_data = _extract(cashflow_df, CASHFLOW_ALIASES)
 
     # ------------------------------------------------------------------
-    # Market data — fast_info first (reliable in cloud), ticker.info as
-    # secondary, ticker.history as last-resort price fallback
+    # Market data — ticker.info fills beta and any gaps left by fast_info
     # ------------------------------------------------------------------
-    market_data: dict[str, Any] = {
-        "current_price": None,
-        "shares_outstanding": None,
-        "market_cap": None,
-        "beta": None,
-    }
-
-    # 1) fast_info — lightweight endpoint, works reliably on Streamlit Cloud
-    try:
-        fi = ticker.fast_info
-        market_data["current_price"]     = _safe_float(getattr(fi, "last_price",  None))
-        market_data["shares_outstanding"] = _safe_float(getattr(fi, "shares",      None))
-        market_data["market_cap"]         = _safe_float(getattr(fi, "market_cap",  None))
-    except Exception as exc:
-        fetched_warnings.append(f"fast_info unavailable: {exc}")
-
     # 2) ticker.info — fills beta and any gaps left by fast_info
     info: dict = {}
     try:
