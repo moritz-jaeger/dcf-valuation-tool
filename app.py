@@ -534,7 +534,9 @@ def _render_snapshot(data: dict) -> None:
     prices = pd_.get("prices", [])
     if len(prices) >= 2:
         pct_chg = (prices[-1] / prices[0] - 1)
-        chg_str = f"{'▲' if pct_chg >= 0 else '▼'} {abs(pct_chg):.1%} 1yr"
+        arrow   = "▲" if pct_chg >= 0 else "▼"
+        color   = "#00D09C" if pct_chg >= 0 else "#FF4757"
+        chg_str = f'<span style="color:{color}">{arrow} {abs(pct_chg):.1%} 1yr</span>'
     else:
         chg_str = ""
 
