@@ -253,6 +253,9 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         "shares_outstanding": None,
         "market_cap": None,
         "beta": None,
+        "name": None,
+        "sector": None,
+        "industry": None,
     }
     try:
         fi = ticker.fast_info
@@ -320,7 +323,10 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     if market_data["market_cap"] is None:
         market_data["market_cap"] = _info_field(["marketCap"], "market_cap")
 
-    market_data["beta"] = _info_field(["beta", "beta3Year"], "beta")
+    market_data["beta"]     = _info_field(["beta", "beta3Year"], "beta")
+    market_data["name"]     = info.get("longName") or info.get("shortName") or ticker_symbol
+    market_data["sector"]   = info.get("sector") or None
+    market_data["industry"] = info.get("industry") or None
 
     # 3) history fallback — last resort for current price
     if market_data["current_price"] is None:

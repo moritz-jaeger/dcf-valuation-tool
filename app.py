@@ -227,28 +227,24 @@ def _init_state() -> None:
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _load_ticker_data(symbol: str) -> dict[str, Any]:
-    # v3 — OCF / FCF alias fixes applied; bust stale cloud cache
+    # v4 — sector/name/beta consolidated into data_fetcher; bust stale cloud cache
     fin         = fetch_financial_data(symbol)
     fcf         = calculate_fcf(fin)
     assum       = build_assumptions(symbol, fin)
     risk_result = assess_risk(fin, fcf)
 
-    t = yf.Ticker(symbol)
-    info: dict = {}
+    t    = yf.Ticker(symbol)
     hist = pd.DataFrame()
-    try:
-        info = t.info or {}
-    except Exception:
-        pass
     try:
         hist = t.history(period="1y")
     except Exception:
         pass
 
+    mkt = fin.get("market_data", {})
     company_info = {
-        "name":     info.get("longName") or info.get("shortName") or symbol,
-        "sector":   info.get("sector",   "N/A"),
-        "industry": info.get("industry", "N/A"),
+        "name":     mkt.get("name")     or symbol,
+        "sector":   mkt.get("sector")   or "N/A",
+        "industry": mkt.get("industry") or "N/A",
     }
 
     price_data: dict[str, Any] = {"dates": [], "prices": []}
