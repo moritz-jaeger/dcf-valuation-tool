@@ -136,6 +136,11 @@ html, body, input, button, textarea, select,
   background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%) !important;
 }
 [data-testid="stSidebar"] * { color:#cbd5e1 !important; }
+[data-testid="stSidebar"] code {
+  background:rgba(255,255,255,.12) !important;
+  color:#f1f5f9 !important;
+  border-radius:4px; padding:.1em .35em;
+}
 [data-testid="stSidebar"] hr { border-color:#334155 !important; }
 [data-testid="stSidebar"] .stButton>button {
   background:rgba(255,255,255,.07) !important;
@@ -338,7 +343,7 @@ def _render_sidebar() -> None:
     with st.sidebar:
         st.markdown("## 📊 DCF Valuation")
         if ticker:
-            st.markdown(f"### `{ticker}`")
+            st.markdown(f"### {ticker}")
         st.divider()
 
         st.markdown("**Progress**")
@@ -361,7 +366,7 @@ def _render_sidebar() -> None:
                 st.divider()
                 filled = round(score)
                 bar    = "🟢" * filled + "⚫" * (10 - filled)
-                st.markdown(f"**Risk Score**  \n{bar}  \n`{score:.0f}/10` — {lbl}")
+                st.markdown(f"**Risk Score**  \n{bar}  \n**{score:.0f}/10** — {lbl}")
 
         if step > 0:
             st.divider()

@@ -489,6 +489,11 @@ def build_assumptions(
     mkt = financial_data.get("market_data",      {})
 
     ticker_obj = yf.Ticker(ticker_symbol)
+    # Warm up the curl_cffi session before analyst data endpoints
+    try:
+        _ = ticker_obj.fast_info
+    except Exception:
+        pass
 
     # 1–2. Live market data
     risk_free_rate = _fetch_risk_free_rate(warnings)
