@@ -183,11 +183,12 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
     annual: dict[str, dict[str, Any]] = {}
 
     for i, yr in enumerate(all_years):
-        ebit      = _get(inc.get("ebit"), yr)
-        da        = _get(inc.get("depreciation_amortization"), yr)
-        capex_raw = _get(cf.get("capital_expenditure"), yr)
-        opcf      = _get(cf.get("operating_cash_flow"), yr)
-        nwc       = nwc_by_year.get(yr)
+        ebit         = _get(inc.get("ebit"), yr)
+        da           = _get(inc.get("depreciation_amortization"), yr)
+        capex_raw    = _get(cf.get("capital_expenditure"), yr)
+        opcf         = _get(cf.get("operating_cash_flow"), yr)
+        fcf_reported = _get(cf.get("free_cash_flow"), yr)
+        nwc          = nwc_by_year.get(yr)
 
         # CapEx: yfinance reports as negative cash outflow; we need the
         # positive magnitude for the formula (FCF = ... − CapEx).
@@ -202,24 +203,27 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
         nopat = _mul(ebit, (1.0 - effective_tax_rate)) if ebit is not None else None
 
         # ── FCF ──────────────────────────────────────────────────────────
-        # Primary method:  FCF = Operating CF − CapEx
-        #   Operating CF (reported via the indirect method) already incorporates
-        #   ΔNWC, so this is the most data-rich formula — it only needs the
-        #   cash flow statement, which is typically complete across all years.
-        # Secondary method: FCF = NOPAT + D&A − ΔNWC − CapEx
-        #   Used when Operating CF is unavailable but full balance sheet data is.
+        # Priority 1 — Operating CF − CapEx  (both from cash flow statement)
+        # Priority 2 — Free Cash Flow reported by yfinance  (= OCF − CapEx,
+        #              pre-computed by Yahoo Finance; avoids OCF alias issues)
+        # Priority 3 — EBIT-based  (NOPAT + D&A − ΔNWC − CapEx)
         fcf = None
         fcf_method = None
 
         if opcf is not None and capex is not None:
             fcf = opcf - capex
             fcf_method = "direct"
+        elif fcf_reported is not None:
+            # Use Yahoo Finance's own FCF calculation directly
+            fcf = fcf_reported
+            fcf_method = "reported"
         elif all(v is not None for v in [nopat, da, delta_nwc, capex]):
             fcf = nopat + da - delta_nwc - capex
             fcf_method = "ebit"
         else:
             missing_direct = [
-                n for n, v in [("Operating CF", opcf), ("CapEx", capex)]
+                n for n, v in [("Operating CF", opcf), ("CapEx", capex),
+                                ("Free CF", fcf_reported)]
                 if v is None
             ]
             missing_ebit = [
@@ -229,7 +233,7 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
             ]
             calc_warnings.append(
                 f"{yr}: FCF could not be computed — "
-                f"direct method missing {missing_direct}; "
+                f"cash flow methods missing {missing_direct}; "
                 f"EBIT method missing {missing_ebit}."
             )
 
@@ -243,8 +247,9 @@ def calculate_fcf(financial_data: dict[str, Any]) -> dict[str, Any]:
             "delta_nwc":      delta_nwc,
             "capex":          capex,       # positive magnitude
             "opcf":           opcf,
+            "fcf_reported":   fcf_reported,
             "fcf":            fcf,
-            "fcf_method":     fcf_method,  # "ebit" | "direct" | None
+            "fcf_method":     fcf_method,  # "direct" | "reported" | "ebit" | None
             "fcf_ebit_ratio": fcf_ebit_ratio,
         }
 

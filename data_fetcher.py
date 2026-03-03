@@ -110,11 +110,19 @@ CASHFLOW_ALIASES: dict[str, list[str]] = {
         "Net Cash Provided By Operating Activities",
         "Cash Flows From Operating Activities",
         "Cash Generated From Operating Activities",
+        # "Operations" variants (different from "Operating" — yfinance version-dependent)
+        "Cash Flow From Continuing Operations",
+        "Cash Flows From Continuing Operations",
+        "Total Cash From Operations",
+        "Net Cash From Operations",
+        "Cash Flow From Operations",
         # yfinance 0.2.x / some tickers
         "CashFlowFromContinuingOperatingActivities",
+        "CashFlowFromContinuingOperations",
         "Net Cash From Continuing Operations",
-        # Fuzzy sentinel: "~" prefix triggers substring scan of the df index
-        "~operating cash",
+        # Fuzzy sentinel: "~" prefix → case-insensitive substring scan.
+        # "operat" matches both "operating" and "operations".
+        "~cash operat",
     ],
     "capital_expenditure": [
         "Capital Expenditure",
@@ -123,6 +131,13 @@ CASHFLOW_ALIASES: dict[str, list[str]] = {
         "Purchase Of Property Plant And Equipment",
         "PurchaseOfPropertyPlantAndEquipment",
         "~capital expenditure",
+    ],
+    # Pre-computed FCF from yfinance (= OCF − CapEx).
+    # Used directly when operating_cash_flow cannot be resolved.
+    "free_cash_flow": [
+        "Free Cash Flow",
+        "FreeCashFlow",
+        "~free cash flow",
     ],
 }
 

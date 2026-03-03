@@ -533,10 +533,9 @@ def _render_fcf_table(data: dict) -> None:
         ("FCF / EBIT",  "fcf_ebit_ratio", True),
     ]
 
-    # Track whether any year used the direct (Operating CF) fallback
-    uses_direct = any(
-        annual.get(yr, {}).get("fcf_method") == "direct" for yr in years
-    )
+    # Track which fallback methods were used (for footnote)
+    uses_direct   = any(annual.get(yr, {}).get("fcf_method") == "direct"   for yr in years)
+    uses_reported = any(annual.get(yr, {}).get("fcf_method") == "reported" for yr in years)
 
     rows = []
     for label, key, is_ratio in rows_def:
@@ -548,11 +547,11 @@ def _render_fcf_table(data: dict) -> None:
             if v is None:
                 row.append('<span class="muted">—</span>')
             elif is_ratio:
-                sup = " †" if method == "direct" else ""
+                sup = " †" if method in ("direct", "reported") else ""
                 row.append(f"{v:.2f}×{sup}")
             else:
                 cls = _val_cls(v) if key == "fcf" else ""
-                sup = " †" if key == "fcf" and method == "direct" else ""
+                sup = " †" if key == "fcf" and method in ("direct", "reported") else ""
                 txt = f"{_bil(v)}{sup}"
                 row.append(f'<span class="{cls}">{txt}</span>' if cls else txt)
         rows.append(row)
@@ -560,8 +559,8 @@ def _render_fcf_table(data: dict) -> None:
     col_tbl, col_meta = st.columns([3, 1])
     with col_tbl:
         _htable(headers, rows)
-        if uses_direct:
-            st.caption("† FCF = Operating CF − CapEx (balance sheet NWC unavailable for this year)")
+        if uses_direct or uses_reported:
+            st.caption("† FCF = Operating CF − CapEx (from cash flow statement; ΔNWC-based formula unavailable)")
     with col_meta:
         tc   = fcf.get("effective_tax_rate")
         avg3 = fcf.get("fcf_ebit_3yr_avg")
