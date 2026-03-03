@@ -440,7 +440,7 @@ def _render_landing() -> None:
     <div class="au" style="text-align:center; padding: 3rem 0 1.5rem;">
       <div class="hero-title">Institutional-grade valuation<br><span class="hero-accent">in seconds.</span></div>
     </div>
-    <div class="au1" style="text-align:center;">
+    <div class="au1" style="display:flex; justify-content:center; width:100%;">
       <p class="hero-sub">Enter any US stock ticker. Get a DCF valuation, sensitivity analysis, and risk assessment — powered by live market data.</p>
     </div>
     """, unsafe_allow_html=True)
