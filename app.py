@@ -592,16 +592,21 @@ def _render_snapshot(data: dict) -> None:
         "FCF Trend  (normalised slope)":        "Whether free cash flow is improving or deteriorating — a positive trend signals a strengthening business.",
     }
     with st.expander("Risk Dashboard", expanded=False):
-        st.caption(
-            "Six financial health checks, each rated Healthy · Watch · Concern. "
-            "The overall score (0–10) is shown in the sidebar."
+        st.markdown(
+            '<p style="font-size:0.85rem;color:#6B6B80;margin:0 0 0.75rem;">'
+            'Six financial health checks, each rated '
+            '<span style="color:#00D09C;font-weight:600;">● Healthy</span> · '
+            '<span style="color:#F59E0B;font-weight:600;">● Watch</span> · '
+            '<span style="color:#FF4757;font-weight:600;">● Concern</span>. '
+            'The overall score (0–10) is shown in the sidebar.</p>',
+            unsafe_allow_html=True,
         )
         metrics = risk.get("metrics", {})
         BADGE   = {
-            "green": '<span style="color:#00D09C;">●</span>',
-            "amber": '<span style="color:#F59E0B;">●</span>',
-            "red":   '<span style="color:#FF4757;">●</span>',
-            "na":    '<span style="color:#6B6B80;">●</span>',
+            "green": '<span style="color:#00D09C; display:block; text-align:center;">●</span>',
+            "amber": '<span style="color:#F59E0B; display:block; text-align:center;">●</span>',
+            "red":   '<span style="color:#FF4757; display:block; text-align:center;">●</span>',
+            "na":    '<span style="color:#6B6B80; display:block; text-align:center;">●</span>',
         }
         rows = [
             [m["label"], m["value_str"],
