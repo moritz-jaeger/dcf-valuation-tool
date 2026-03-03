@@ -41,7 +41,9 @@ st.set_page_config(
 _CSS_BASE = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-*, *::before, *::after { font-family: 'Inter', -apple-system, sans-serif !important; }
+html, body, input, button, textarea, select,
+.stMarkdown, .stText, .stMetric, .stDataFrame,
+[data-testid="stSidebar"] { font-family: 'Inter', -apple-system, sans-serif !important; }
 
 .main .block-container { padding: 2rem 2.5rem 4rem; max-width: 1100px; }
 
