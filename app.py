@@ -82,9 +82,12 @@ header[data-testid="stHeader"] { background: transparent !important; }
 }
 .stButton > button:hover { background: #7C75FF !important; }
 
-/* Sliders */
-[data-testid="stSlider"] [role="slider"] { background: #6C63FF !important; }
-[data-testid="stSlider"] > div > div { background: #6C63FF !important; }
+/* Sliders — style thumb only; do not override the track container */
+[data-testid="stSlider"] [role="slider"] {
+  background: #6C63FF !important;
+  border: 2px solid #6C63FF !important;
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.25) !important;
+}
 
 /* Radio */
 [data-testid="stRadio"] label { color: #E8E8F0 !important; }
