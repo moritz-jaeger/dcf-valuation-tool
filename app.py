@@ -815,7 +815,8 @@ def _render_snapshot(data: dict) -> None:
     risk = data["risk"]
 
     # 1-year price chart
-    dates = pd_["dates"]
+    dates  = pd_["dates"]
+    prices = pd_.get("prices", [])
     if dates and prices:
         up         = prices[-1] >= prices[0]
         line_color = "#22C55E" if up else "#EF4444"
