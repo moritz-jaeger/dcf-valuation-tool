@@ -377,6 +377,32 @@ header[data-testid="stHeader"] { background: transparent !important; }
 }
 .wacc-detail { font-size: 0.8rem; color: var(--text-2); line-height: 1.7; }
 
+/* ── Assumption strip ───────────────────────────────────── */
+.assumption-strip {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: #1E293B; border: 1px solid #334155;
+  border-left: 3px solid #3B82F6; border-radius: 8px;
+  padding: 10px 16px; margin-bottom: 12px;
+}
+.astrip-label { font-size: 0.62rem; font-weight: 700; color: #475569;
+                text-transform: uppercase; letter-spacing: 0.09em; margin-right: 4px; }
+.astrip-chip  { background: #0F172A; border: 1px solid #334155; border-radius: 5px;
+                padding: 3px 10px; font-family: 'IBM Plex Mono',monospace;
+                font-size: 0.75rem; font-weight: 600; color: #3B82F6; }
+.astrip-sep   { color: #334155; font-size: 0.75rem; }
+
+/* ── Risk cards ─────────────────────────────────────────── */
+.risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
+.risk-card { background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 14px 16px; }
+.risk-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.risk-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.risk-name { font-size: 0.62rem; font-weight: 700; color: #475569;
+             text-transform: uppercase; letter-spacing: 0.09em; }
+.risk-val  { font-size: 1.35rem; font-weight: 700; font-family: 'IBM Plex Mono',monospace;
+             letter-spacing: -0.02em; margin-bottom: 4px; }
+.risk-note { font-size: 0.72rem; color: #94A3B8; line-height: 1.5; margin-bottom: 5px; }
+.risk-thresh { font-size: 0.62rem; color: #475569; line-height: 1.4; }
+
 /* ── Animations ─────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -867,19 +893,30 @@ def _render_snapshot(data: dict) -> None:
             unsafe_allow_html=True,
         )
         metrics = risk.get("metrics", {})
-        BADGE = {
-            "green": '<span style="color:#22C55E;display:block;text-align:center;font-size:1rem;">●</span>',
-            "amber": '<span style="color:#F59E0B;display:block;text-align:center;font-size:1rem;">●</span>',
-            "red":   '<span style="color:#EF4444;display:block;text-align:center;font-size:1rem;">●</span>',
-            "na":    '<span style="color:#334155;display:block;text-align:center;font-size:1rem;">●</span>',
+        COLOR_MAP = {
+            "green": ("rgba(34,197,94,0.2)",  "#22C55E"),
+            "amber": ("rgba(245,158,11,0.2)", "#F59E0B"),
+            "red":   ("rgba(239,68,68,0.2)",  "#EF4444"),
+            "na":    ("#1E293B",               "#334155"),
         }
-        rows = [
-            [m["label"], m["value_str"],
-             BADGE.get(m["rating"], "?"), m["note"],
-             _RISK_DESC.get(m["label"], "")]
-            for m in metrics.values()
-        ]
-        _htable(["Metric", "Value", "Rating", "Note", "What it measures"], rows)
+        cards_html = '<div class="risk-grid">'
+        for m in metrics.values():
+            border_color, accent_color = COLOR_MAP.get(m["rating"], ("#1E293B", "#334155"))
+            val_color = accent_color if m["rating"] != "na" else "#475569"
+            thresh = _RISK_DESC.get(m["label"], "")
+            cards_html += (
+                f'<div class="risk-card" style="border-color:{border_color};">'
+                f'<div class="risk-card-header">'
+                f'<div class="risk-dot" style="background:{accent_color};"></div>'
+                f'<div class="risk-name">{m["label"]}</div>'
+                f'</div>'
+                f'<div class="risk-val" style="color:{val_color};">{m["value_str"]}</div>'
+                f'<div class="risk-note">{m["note"]}</div>'
+                f'<div class="risk-thresh">{thresh}</div>'
+                f'</div>'
+            )
+        cards_html += '</div>'
+        st.markdown(cards_html, unsafe_allow_html=True)
 
 
 # ─── Step 1b: Historical FCF ──────────────────────────────────────────────────
@@ -1012,7 +1049,7 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         else:
             growth_rate = options[selected]
 
-    with st.expander("EBIT Margin & Terminal Growth", expanded=True):
+    with st.expander("EBIT Margin & Terminal Growth", expanded=False):
         st.caption(
             "EBIT margin is operating profit as a share of revenue — it determines how much of each sales dollar "
             "flows through to cash. Terminal growth rate is the assumed growth rate after year 5, in perpetuity."
@@ -1033,7 +1070,7 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
                 key=f"{k}_tgr_slider",
             )
 
-    with st.expander("WACC Assumptions", expanded=True):
+    with st.expander("WACC Assumptions", expanded=False):
         st.caption(
             "WACC is the discount rate applied to future cash flows — "
             "a higher WACC means future cash is worth less today, producing a lower implied price."
@@ -1265,6 +1302,48 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
         ]
         _htable(hdrs, rows)
 
+        yr_lbls  = [f"FY{yr}" for yr in years]
+        fcf_vals = [proj[y].get("fcf") for y in years]
+        pv_vals  = [proj[y].get("pv_fcf") for y in years]
+        fig_bar  = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            name="Projected FCF",
+            x=yr_lbls,
+            y=[v / 1e9 if v is not None else None for v in fcf_vals],
+            marker_color="#3B82F6",
+            hovertemplate="<b>%{x}</b><br>FCF: $%{y:.2f}B<extra></extra>",
+        ))
+        fig_bar.add_trace(go.Bar(
+            name="PV of FCF",
+            x=yr_lbls,
+            y=[v / 1e9 if v is not None else None for v in pv_vals],
+            marker_color="rgba(59,130,246,0.35)",
+            marker_line=dict(color="#3B82F6", width=1),
+            hovertemplate="<b>%{x}</b><br>PV: $%{y:.2f}B<extra></extra>",
+        ))
+        fig_bar.update_layout(
+            barmode="group",
+            height=240,
+            margin=dict(l=60, r=20, t=36, b=32),
+            plot_bgcolor="#0F172A", paper_bgcolor="#020617",
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                font=dict(size=10, color="#94A3B8"),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            yaxis=dict(
+                tickprefix="$", ticksuffix="B",
+                showgrid=True, gridcolor="#1E293B", zeroline=False,
+                tickfont=dict(size=10, color="#475569"), color="#475569",
+            ),
+            xaxis=dict(
+                showgrid=False, zeroline=False,
+                tickfont=dict(size=10, color="#475569"), color="#475569",
+            ),
+            font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+
     warns = dcf.get("warnings", [])
     if warns:
         with st.expander(f"{len(warns)} valuation warning(s)", expanded=False):
@@ -1393,6 +1472,43 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
     st.plotly_chart(fig, use_container_width=True)
     st.caption("Blue outline = base case assumptions")
 
+    flat_upsides = [
+        upsides[ri][ci]
+        for ri in range(n_rows) for ci in range(n_cols)
+        if upsides[ri][ci] is not None
+    ]
+    if flat_upsides:
+        bear_val = min(flat_upsides)
+        bull_val = max(flat_upsides)
+        base_val = upsides[b_row][b_col]
+        bear_color = "#EF4444" if bear_val < 0 else "#22C55E"
+        bull_color = "#22C55E" if bull_val > 0 else "#EF4444"
+        st.markdown(f"""
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:6px;margin-bottom:4px;">
+          <div style="text-align:center;background:#0F172A;border:1px solid rgba(239,68,68,0.3);
+                      border-radius:8px;padding:8px 20px;min-width:110px;">
+            <div style="font-size:0.6rem;font-weight:700;color:#475569;text-transform:uppercase;
+                        letter-spacing:0.09em;margin-bottom:4px;">Bear Case</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;
+                        color:{bear_color};">{bear_val:+.1%}</div>
+          </div>
+          <div style="text-align:center;background:#0F172A;border:1px solid rgba(59,130,246,0.3);
+                      border-radius:8px;padding:8px 20px;min-width:110px;">
+            <div style="font-size:0.6rem;font-weight:700;color:#475569;text-transform:uppercase;
+                        letter-spacing:0.09em;margin-bottom:4px;">Base Case</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;
+                        color:#3B82F6;">{base_val:+.1%}</div>
+          </div>
+          <div style="text-align:center;background:#0F172A;border:1px solid rgba(34,197,94,0.3);
+                      border-radius:8px;padding:8px 20px;min-width:110px;">
+            <div style="font-size:0.6rem;font-weight:700;color:#475569;text-transform:uppercase;
+                        letter-spacing:0.09em;margin-bottom:4px;">Bull Case</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;
+                        color:{bull_color};">{bull_val:+.1%}</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -1495,6 +1611,22 @@ def main() -> None:
 
     user_vals = _render_assumptions(data, ticker)
     st.markdown("<div style='height:.5rem'></div>", unsafe_allow_html=True)
+
+    ke_strip   = user_vals["rfr"] + user_vals["beta"] * user_vals["erp"]
+    kd_at_strip = user_vals["kd"] * (1 - user_vals["tc"])
+    wacc_strip = ke_strip * user_vals["eq_w"] + kd_at_strip * user_vals["de_w"]
+    st.markdown(f"""
+    <div class="assumption-strip">
+      <span class="astrip-label">Running with</span>
+      <span class="astrip-chip">Rev Growth {user_vals["growth_rate"]:.1%}</span>
+      <span class="astrip-sep">·</span>
+      <span class="astrip-chip">EBIT Margin {user_vals["ebit_margin"]:.1%}</span>
+      <span class="astrip-sep">·</span>
+      <span class="astrip-chip">TGR {user_vals["tgr"]:.1%}</span>
+      <span class="astrip-sep">·</span>
+      <span class="astrip-chip">WACC ~{wacc_strip:.1%}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     _, col_btn, _ = st.columns([1, 2, 1])
     with col_btn:
