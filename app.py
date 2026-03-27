@@ -810,35 +810,9 @@ _RISK_DESC: dict[str, str] = {
 
 def _render_snapshot(data: dict) -> None:
     fin  = data["fin"]
-    ci   = data["company_info"]
     mkt  = fin.get("market_data", {})
     pd_  = data["price_data"]
     risk = data["risk"]
-
-    _sec("Company Snapshot")
-
-    curr_price = mkt.get("current_price")
-    market_cap = mkt.get("market_cap")
-    beta       = mkt.get("beta")
-    score      = risk.get("overall_score")
-    rlabel     = risk.get("overall_label", "")
-
-    prices = pd_.get("prices", [])
-    if len(prices) >= 2:
-        pct_chg = (prices[-1] / prices[0] - 1)
-        arrow   = "▲" if pct_chg >= 0 else "▼"
-        color   = "#22C55E" if pct_chg >= 0 else "#EF4444"
-        chg_str = f'<span style="color:{color};font-family:\'IBM Plex Mono\',monospace;font-size:0.75rem;">{arrow} {abs(pct_chg):.1%} 1yr</span>'
-    else:
-        chg_str = ""
-
-    _kpi_row([
-        ("Current Price",  _px(curr_price), chg_str),
-        ("Market Cap",     _bil(market_cap)),
-        ("Beta",           f"{beta:.2f}" if beta else "—"),
-        ("Sector",         ci["sector"]),
-        ("Risk Score",     f"{score:.0f}/10" if score is not None else "—", rlabel),
-    ])
 
     # 1-year price chart
     dates = pd_["dates"]
