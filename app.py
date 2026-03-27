@@ -1440,19 +1440,75 @@ def main() -> None:
         return
 
     # ── Top company bar ───────────────────────────────────────────────
-    ci  = data["company_info"]
-    mkt = data["fin"].get("market_data", {})
-    cur = mkt.get("current_price")
+    ci     = data["company_info"]
+    mkt    = data["fin"].get("market_data", {})
+    cur    = mkt.get("current_price")
+    mcap   = mkt.get("market_cap")
+    beta   = mkt.get("beta")
+    prices = data["price_data"].get("prices", [])
+
+    # 1yr price change
+    if len(prices) >= 2:
+        pct_chg   = (prices[-1] / prices[0] - 1)
+        chg_arrow = "▲" if pct_chg >= 0 else "▼"
+        chg_color = "#22C55E" if pct_chg >= 0 else "#EF4444"
+        chg_html  = (
+            f'<span style="font-size:0.8rem;font-family:\'IBM Plex Mono\',monospace;'
+            f'color:{chg_color};font-weight:500;">'
+            f'{chg_arrow} {abs(pct_chg):.1%} 1yr</span>'
+        )
+    else:
+        chg_html = ""
+
+    mcap_str = _bil(mcap) if mcap else ""
+    beta_str = f"{beta:.2f}" if beta else ""
+    industry = ci.get("industry", "") or ""
+
     st.markdown(f"""
-    <div style="background:var(--surface-1);border-bottom:1px solid var(--border);
-                padding:1rem 0 0.75rem;margin-bottom:0.25rem;">
-      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;
-                     color:#F8FAFC;letter-spacing:-0.02em;">{ticker}</span>
-        <span style="font-size:0.9rem;color:#94A3B8;">{ci.get('name','')}</span>
-        <span style="font-size:0.72rem;color:#475569;background:#1E293B;
-                     border:1px solid #334155;border-radius:4px;padding:2px 8px;">{ci.get('sector','')}</span>
-        {f'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:0.9rem;color:#F8FAFC;margin-left:auto;">{_px(cur)}</span>' if cur else ''}
+    <div style="
+      background: linear-gradient(135deg, #0F172A 0%, #0B1120 100%);
+      border: 1px solid #1E293B;
+      border-top: 2px solid #3B82F6;
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.75rem;
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    ">
+      <!-- Left: identity -->
+      <div style="display:flex; align-items:center; gap:18px;">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:2.1rem;
+                      font-weight:700; color:#F8FAFC; letter-spacing:-0.03em; line-height:1.1;">
+            {ticker}
+          </div>
+          <div style="font-size:0.82rem; color:#94A3B8; margin-top:4px; font-weight:400;">
+            {ci.get('name','')}
+          </div>
+        </div>
+        <div style="width:1px; height:44px; background:#1E293B; flex-shrink:0;"></div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          <span style="
+            display:inline-block; font-size:0.68rem; font-weight:700; color:#3B82F6;
+            background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25);
+            border-radius:5px; padding:2px 9px; letter-spacing:0.05em;
+          ">{ci.get('sector','')}</span>
+          <span style="font-size:0.72rem; color:#475569;">{industry}</span>
+        </div>
+      </div>
+      <!-- Right: price -->
+      <div style="text-align:right; display:flex; flex-direction:column; gap:4px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:2.1rem;
+                    font-weight:700; color:#F8FAFC; letter-spacing:-0.03em; line-height:1.1;">
+          {_px(cur) if cur else '—'}
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
+          {chg_html}
+          {'<span style="font-size:0.75rem;color:#334155;">|</span>' if chg_html and mcap_str else ''}
+          {'<span style="font-size:0.75rem;color:#475569;">Mkt Cap <span style=\'font-family:IBM Plex Mono,monospace;color:#94A3B8;\'>' + mcap_str + '</span></span>' if mcap_str else ''}
+          {'<span style="font-size:0.75rem;color:#334155;">|</span>' if mcap_str and beta_str else ''}
+          {'<span style="font-size:0.75rem;color:#475569;">β <span style=\'font-family:IBM Plex Mono,monospace;color:#94A3B8;\'>' + beta_str + '</span></span>' if beta_str else ''}
+        </div>
       </div>
     </div>
     """, unsafe_allow_html=True)
