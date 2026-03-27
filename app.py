@@ -1209,7 +1209,7 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     with col_wacc:
         _sec("WACC Build-Up")
-        st.caption("Blends cost of equity (CAPM: RFR + β × ERP) with after-tax cost of debt, weighted by capital structure.")
+        st.markdown('<p style="min-height:2.6rem;font-size:0.82rem;color:#94A3B8;line-height:1.55;margin:0 0 0.5rem;">Blends cost of equity (CAPM: RFR + β × ERP) with after-tax cost of debt, weighted by capital structure.</p>', unsafe_allow_html=True)
         wb = dcf.get("wacc_buildup", {})
         _htable(
             ["Component", "Value"],
@@ -1229,7 +1229,7 @@ def _render_results(dcf: dict, sens: dict | None) -> None:
 
     with col_bridge:
         _sec("Equity Bridge")
-        st.caption("Enterprise Value minus net debt, divided by shares outstanding = implied value per share.")
+        st.markdown('<p style="min-height:2.6rem;font-size:0.82rem;color:#94A3B8;line-height:1.55;margin:0 0 0.5rem;">Enterprise Value minus net debt, divided by shares outstanding = implied value per share.</p>', unsafe_allow_html=True)
         bridge = dcf.get("bridge", {})
         ev     = dcf.get("enterprise_value")
         pv_sum = dcf.get("pv_fcf_sum")
