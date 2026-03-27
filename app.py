@@ -33,15 +33,7 @@ st.set_page_config(
 
 _CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
-
-/* ── Material icons ─────────────────────────────────────── */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-  font-style: normal; line-height: 1; display: inline-block;
-  white-space: nowrap; text-transform: none; direction: ltr;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* ── Token layer ────────────────────────────────────────── */
 :root {
@@ -671,14 +663,14 @@ def _render_landing() -> None:
 
     # Headline
     st.markdown("""
-    <div class="au1">
+    <div class="au1" style="text-align:center;">
       <div class="hero-title">
         Institutional-grade valuation<br>
         <span class="hero-accent">in seconds.</span>
       </div>
     </div>
-    <div class="au2">
-      <p class="hero-sub">
+    <div class="au2" style="display:flex;justify-content:center;width:100%;">
+      <p class="hero-sub" style="text-align:center;">
         Enter any US stock ticker. Get a full DCF model, risk assessment,
         and sensitivity analysis — powered by live financial data.
       </p>
@@ -761,7 +753,9 @@ def _render_landing() -> None:
             st.markdown("""
             <div class="feat-card au2">
               <div class="feat-icon-wrap">
-                <span class="material-symbols-outlined">monitoring</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
               </div>
               <div class="feat-title">Live Financial Data</div>
               <div class="feat-desc">Pulls real-time income statements, balance sheets, beta, and Treasury yield from market APIs automatically.</div>
@@ -771,7 +765,12 @@ def _render_landing() -> None:
             st.markdown("""
             <div class="feat-card au3">
               <div class="feat-icon-wrap">
-                <span class="material-symbols-outlined">calculate</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2"/>
+                  <line x1="8" y1="7" x2="16" y2="7"/>
+                  <line x1="8" y1="12" x2="16" y2="12"/>
+                  <line x1="8" y1="17" x2="12" y2="17"/>
+                </svg>
               </div>
               <div class="feat-title">Full DCF Engine</div>
               <div class="feat-desc">Projects free cash flows over 5 years with CAPM-based WACC, then discounts terminal value to implied share price.</div>
@@ -781,7 +780,12 @@ def _render_landing() -> None:
             st.markdown("""
             <div class="feat-card au4">
               <div class="feat-icon-wrap">
-                <span class="material-symbols-outlined">grid_on</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                </svg>
               </div>
               <div class="feat-title">Sensitivity Analysis</div>
               <div class="feat-desc">Two interactive heatmaps show how the valuation shifts across WACC, terminal growth, revenue growth, and EBIT margin.</div>
