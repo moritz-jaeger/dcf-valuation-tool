@@ -66,21 +66,31 @@ _CSS = """
 }
 
 /* ── Global ─────────────────────────────────────────────── */
-html, body, [data-testid="stApp"] { background: var(--bg) !important; }
+html, body, [data-testid="stApp"] {
+  background: #020617 !important;
+  color: #F8FAFC !important;
+}
 html, body, input, button, textarea, select,
-.stMarkdown, [data-testid="stSidebar"] {
+.stMarkdown, .stMarkdown p, .stMarkdown span, .stMarkdown div,
+[data-testid="stSidebar"], [data-testid="stSidebar"] * {
   font-family: 'Inter', -apple-system, sans-serif !important;
 }
-.main .block-container { padding: 0 2.5rem 4rem; max-width: 1280px; }
+/* Force text visibility against dark background */
+.stMarkdown, .stMarkdown p, .stMarkdown li,
+[data-testid="stText"], [data-testid="stCaption"] p,
+[data-testid="stCaptionContainer"] p {
+  color: #94A3B8 !important;
+}
+.main .block-container { padding: 1.5rem 2.5rem 4rem; max-width: 1280px; }
 
 /* ── Hide Streamlit chrome ──────────────────────────────── */
 #MainMenu, footer, [data-testid="stDecoration"] { display: none !important; }
-header[data-testid="stHeader"] { background: transparent !important; height: 0 !important; }
+header[data-testid="stHeader"] { background: transparent !important; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-  background: var(--surface-1) !important;
-  border-right: 1px solid var(--border) !important;
+  background: #0F172A !important;
+  border-right: 1px solid #1E293B !important;
 }
 [data-testid="stSidebar"] .stButton > button {
   background: transparent !important;
@@ -647,7 +657,7 @@ def _render_sidebar() -> None:
 # ─── Step 0: Landing ──────────────────────────────────────────────────────────
 
 def _render_landing() -> None:
-    st.markdown('<div class="landing-wrap">', unsafe_allow_html=True)
+    st.markdown("<div style='height:3rem'></div>", unsafe_allow_html=True)
 
     # Badge
     st.markdown("""
@@ -778,7 +788,6 @@ def _render_landing() -> None:
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ─── Risk metric descriptions ─────────────────────────────────────────────────
