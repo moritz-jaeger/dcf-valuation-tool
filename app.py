@@ -1010,19 +1010,21 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         options: dict[str, float | None] = {}
         arg = assum.get("analyst_revenue_growth", {})
 
-        v = assum.get("revenue_cagr_3yr", {}).get("value")
-        if v is not None:
-            options[f"Historical 3yr CAGR  ({v:.2%})"] = v
-        v = assum.get("revenue_cagr_5yr", {}).get("value")
-        if v is not None:
-            options[f"Historical 5yr CAGR  ({v:.2%})"] = v
-
+        # Analyst estimates first — forward-looking and more appropriate as default
         v = arg.get("next_year", {}).get("value")
         if v is not None:
             options[f"Analyst estimate — next FY  ({v:.2%})"] = v
         v = arg.get("current_year", {}).get("value")
         if v is not None:
             options[f"Analyst estimate — current FY  ({v:.2%})"] = v
+
+        # Historical CAGRs after analyst estimates
+        v = assum.get("revenue_cagr_3yr", {}).get("value")
+        if v is not None:
+            options[f"Historical 3yr CAGR  ({v:.2%})"] = v
+        v = assum.get("revenue_cagr_5yr", {}).get("value")
+        if v is not None:
+            options[f"Historical 5yr CAGR  ({v:.2%})"] = v
 
         _rev = (data["fin"].get("income_statement") or {}).get("revenue") or {}
         _ry  = sorted(yr for yr, val in _rev.items() if val is not None)
@@ -1564,8 +1566,15 @@ def main() -> None:
         f'<span style="font-size:0.75rem;color:#475569;">\u03b2 '
         f'<span style="{_mono};color:#94A3B8;">{beta_str}</span></span>'
     ) if beta_str else ""
-    _sep1_html = '<span style="font-size:0.75rem;color:#334155;">|</span>' if chg_html and _mcap_html else ""
-    _sep2_html = '<span style="font-size:0.75rem;color:#334155;">|</span>' if _mcap_html and _beta_html else ""
+    _sep = '<span style="font-size:0.75rem;color:#334155;">|</span>'
+    _price_stats_parts = [p for p in [
+        chg_html,
+        _sep if chg_html and _mcap_html else "",
+        _mcap_html,
+        _sep if _mcap_html and _beta_html else "",
+        _beta_html,
+    ] if p]
+    _price_stats = "".join(_price_stats_parts)
 
     st.markdown(f"""
     <div style="
@@ -1606,11 +1615,7 @@ def main() -> None:
           {_px(cur) if cur else '—'}
         </div>
         <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
-          {chg_html}
-          {_sep1_html}
-          {_mcap_html}
-          {_sep2_html}
-          {_beta_html}
+          {_price_stats}
         </div>
       </div>
     </div>
