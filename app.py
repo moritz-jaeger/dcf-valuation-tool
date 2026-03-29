@@ -1555,6 +1555,18 @@ def main() -> None:
     beta_str = f"{beta:.2f}" if beta else ""
     industry = ci.get("industry", "") or ""
 
+    _mono = "font-family:IBM Plex Mono,monospace"
+    _mcap_html = (
+        f'<span style="font-size:0.75rem;color:#475569;">Mkt Cap '
+        f'<span style="{_mono};color:#94A3B8;">{mcap_str}</span></span>'
+    ) if mcap_str else ""
+    _beta_html = (
+        f'<span style="font-size:0.75rem;color:#475569;">\u03b2 '
+        f'<span style="{_mono};color:#94A3B8;">{beta_str}</span></span>'
+    ) if beta_str else ""
+    _sep1_html = '<span style="font-size:0.75rem;color:#334155;">|</span>' if chg_html and _mcap_html else ""
+    _sep2_html = '<span style="font-size:0.75rem;color:#334155;">|</span>' if _mcap_html and _beta_html else ""
+
     st.markdown(f"""
     <div style="
       background: linear-gradient(135deg, #0F172A 0%, #0B1120 100%);
@@ -1595,10 +1607,10 @@ def main() -> None:
         </div>
         <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
           {chg_html}
-          {'<span style="font-size:0.75rem;color:#334155;">|</span>' if chg_html and mcap_str else ''}
-          {'<span style="font-size:0.75rem;color:#475569;">Mkt Cap <span style=\'font-family:IBM Plex Mono,monospace;color:#94A3B8;\'>' + mcap_str + '</span></span>' if mcap_str else ''}
-          {'<span style="font-size:0.75rem;color:#334155;">|</span>' if mcap_str and beta_str else ''}
-          {'<span style="font-size:0.75rem;color:#475569;">β <span style=\'font-family:IBM Plex Mono,monospace;color:#94A3B8;\'>' + beta_str + '</span></span>' if beta_str else ''}
+          {_sep1_html}
+          {_mcap_html}
+          {_sep2_html}
+          {_beta_html}
         </div>
       </div>
     </div>

@@ -352,6 +352,13 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         except Exception:
             pass
 
+    # Shares fallback: derive from market_cap / current_price when both API methods fail
+    if market_data["shares_outstanding"] is None:
+        mc = market_data["market_cap"]
+        cp = market_data["current_price"]
+        if mc and cp and cp > 0:
+            market_data["shares_outstanding"] = mc / cp
+
     # 3) history fallback — last resort for current price
     if market_data["current_price"] is None:
         try:
