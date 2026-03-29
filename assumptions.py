@@ -244,7 +244,25 @@ def _fetch_analyst_revenue_growth(
     except Exception as exc:
         warnings.append(f"revenue_estimate fetch failed: {exc}")
 
-    fetched_count = sum(1 for v in items.values() if v["status"] == "fetched")
+    # -- fallback: earnings_estimate growth as revenue growth proxy
+    # Uses a different quoteSummary module — may succeed when revenue_estimate fails.
+    if any(v["status"] != "fetched" for v in items.values()):
+        try:
+            ear_est = ticker_obj.earnings_estimate
+            if ear_est is not None and not ear_est.empty and "growth" in ear_est.columns:
+                for period, key in [("0y", "current_year"), ("+1y", "next_year")]:
+                    if items[key]["status"] != "fetched" and period in ear_est.index:
+                        val = _safe_float(ear_est.loc[period, "growth"])
+                        if val is not None:
+                            items[key] = _make(
+                                val, "estimated",
+                                source="yfinance earnings_estimate (proxy)",
+                                note=f"Earnings growth used as revenue proxy, period {period}",
+                            )
+        except Exception:
+            pass
+
+    fetched_count = sum(1 for v in items.values() if v["status"] in ("fetched", "estimated"))
     if fetched_count == 0:
         overall_status = "unavailable"
         warnings.append(

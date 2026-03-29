@@ -1038,12 +1038,34 @@ def _render_assumptions(data: dict, ticker: str) -> dict[str, Any]:
         _CUSTOM = "Custom..."
         options[_CUSTOM] = None
 
-        selected = st.radio("", list(options.keys()),
+        _has_analyst = any("Analyst" in key for key in options)
+        _option_keys  = list(options.keys())
+        _non_custom   = {k: v for k, v in options.items() if v is not None}
+
+        # When no analyst estimates are available and every historical option
+        # exceeds 30%, default to Custom with a capped suggestion (20%).
+        _all_high = bool(_non_custom) and all(v > 0.30 for v in _non_custom.values())
+        if not _has_analyst and _all_high:
+            _default_idx = _option_keys.index(_CUSTOM)
+            _custom_default = 20.0
+            st.warning(
+                "⚠️ Analyst revenue estimates are unavailable for this ticker on the server. "
+                "All historical growth rates exceed 30% — applying them over 5 years "
+                "produces an unrealistic valuation. **Review the growth assumption carefully** "
+                "or enter a custom figure that reflects your own view of sustainable growth.",
+                icon=None,
+            )
+        else:
+            _default_idx  = 0
+            _custom_default = 5.0
+
+        selected = st.radio("", _option_keys,
+                            index=_default_idx,
                             label_visibility="collapsed",
                             key=f"{k}_growth_radio")
         if selected == _CUSTOM:
             growth_rate = st.number_input(
-                "Growth rate (%)", value=5.0, min_value=-50.0, max_value=100.0,
+                "Growth rate (%)", value=_custom_default, min_value=-50.0, max_value=100.0,
                 step=0.1, format="%.1f",
                 help="Enter your own annual revenue growth assumption for the 5-year forecast.",
                 key=f"{k}_growth_custom",
