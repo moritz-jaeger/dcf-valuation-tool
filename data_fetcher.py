@@ -318,7 +318,7 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         )
     if market_data["shares_outstanding"] is None:
         market_data["shares_outstanding"] = _info_field(
-            ["sharesOutstanding", "impliedSharesOutstanding"], "shares_outstanding"
+            ["sharesOutstanding", "impliedSharesOutstanding", "floatShares"], "shares_outstanding"
         )
     if market_data["market_cap"] is None:
         market_data["market_cap"] = _info_field(["marketCap"], "market_cap")
@@ -352,12 +352,28 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
         except Exception:
             pass
 
-    # Shares fallback: derive from market_cap / current_price when both API methods fail
+    # Shares fallback 1: derive from info marketCap / regularMarketPrice
+    if market_data["shares_outstanding"] is None:
+        mc_info = _safe_float(info.get("marketCap"))
+        cp_info = _safe_float(info.get("regularMarketPrice") or info.get("currentPrice"))
+        if mc_info and cp_info and cp_info > 0:
+            market_data["shares_outstanding"] = mc_info / cp_info
+
+    # Shares fallback 2: derive from fast_info market_cap / current_price
     if market_data["shares_outstanding"] is None:
         mc = market_data["market_cap"]
         cp = market_data["current_price"]
         if mc and cp and cp > 0:
             market_data["shares_outstanding"] = mc / cp
+
+    # Shares fallback 3: get_shares_full() — uses a separate Yahoo Finance endpoint
+    if market_data["shares_outstanding"] is None:
+        try:
+            shares_series = ticker.get_shares_full()
+            if shares_series is not None and not shares_series.empty:
+                market_data["shares_outstanding"] = _safe_float(shares_series.iloc[-1])
+        except Exception:
+            pass
 
     # 3) history fallback — last resort for current price
     if market_data["current_price"] is None:
