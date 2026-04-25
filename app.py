@@ -193,6 +193,19 @@ header[data-testid="stHeader"] { display: none !important; }
   outline: none !important;
 }
 [data-testid="stTextInput"] input::placeholder { color: var(--rule-2) !important; }
+
+/* ── Landing input row (tight editorial layout) ─────────── */
+.landing-input-row + div [data-testid="stHorizontalBlock"] {
+  max-width: 560px !important;
+  align-items: flex-end !important;
+  gap: 24px !important;
+}
+.landing-input-row + div [data-testid="stHorizontalBlock"] .stButton > button {
+  padding: 11px 24px !important;
+}
+.landing-chips + div [data-testid="stHorizontalBlock"] {
+  gap: 4px !important;
+}
 [data-testid="stRadio"] label, [data-testid="stRadio"] p { color: var(--ink-2) !important; }
 
 /* ── Expanders ──────────────────────────────────────────── */
@@ -602,7 +615,9 @@ def _render_landing() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    inp_col, btn_col, _ = st.columns([3, 1.2, 3])
+    # Tight editorial input row — input flex:1, Begin button beside it, capped width
+    st.markdown('<div class="landing-input-row">', unsafe_allow_html=True)
+    inp_col, btn_col = st.columns([3, 1])
     with inp_col:
         ticker_input = st.text_input(
             "ticker",
@@ -610,18 +625,18 @@ def _render_landing() -> None:
             label_visibility="collapsed",
             key="landing_ticker",
         ).upper().strip()
-
     with btn_col:
-        st.markdown("<div style='height:42px'></div>", unsafe_allow_html=True)
         go_clicked = st.button("Begin →", use_container_width=True, key="landing_go")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
-    # Quick picks
+    # Quick picks — tight chip row
     st.markdown("""
     <div class="meta rise rise4" style="margin-bottom:10px;">Or try one</div>
     """, unsafe_allow_html=True)
-    c1, c2, c3, _, _, _, _, _ = st.columns([1, 1, 1, 1, 1, 1, 1, 1])
+    st.markdown('<div class="landing-chips">', unsafe_allow_html=True)
+    c1, c2, c3, _spacer = st.columns([1, 1, 1, 6])
     qp_clicked = None
     for col, sym in [(c1, "AAPL"), (c2, "NVDA"), (c3, "TSLA")]:
         with col:
@@ -629,6 +644,7 @@ def _render_landing() -> None:
             if st.button(sym, key=f"qp_{sym}"):
                 qp_clicked = sym
             st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Handle submissions
     target = None
