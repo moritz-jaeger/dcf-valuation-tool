@@ -995,8 +995,8 @@ def _render_chapter_growth() -> None:
 
         # Analyst band (if available)
         if analyst_cagr and last_rev:
-            band_lo = [last_rev * (1 + max(0, analyst_cagr - 0.03)) ** i for i in fc_yrs]
-            band_hi = [last_rev * (1 + analyst_cagr + 0.03) ** i for i in fc_yrs]
+            band_lo = [last_rev * (1 + max(0, analyst_cagr - 0.03)) ** i / 1e9 for i in fc_yrs]
+            band_hi = [last_rev * (1 + analyst_cagr + 0.03) ** i / 1e9 for i in fc_yrs]
             fig.add_trace(go.Scatter(
                 x=fc_lbls + fc_lbls[::-1],
                 y=band_hi + band_lo[::-1],
@@ -1005,7 +1005,7 @@ def _render_chapter_growth() -> None:
                 hoverinfo="skip",
             ))
             fig.add_trace(go.Scatter(
-                x=fc_lbls, y=[last_rev * (1 + analyst_cagr) ** i for i in fc_yrs],
+                x=fc_lbls, y=[last_rev * (1 + analyst_cagr) ** i / 1e9 for i in fc_yrs],
                 mode="lines", line=dict(color="rgba(33,64,199,0.45)", width=1.2, dash="dot"),
                 name="Analyst consensus", showlegend=True,
             ))
@@ -1111,44 +1111,53 @@ def _render_chapter_margin() -> None:
         )
         ebit_margin = ebit_margin_pct / 100
 
-        # Peer benchmark bar (HTML)
+        # Peer benchmark — Plotly scatter (replaces fragile absolute-positioned HTML)
         industry_median = base_margin * 0.85
         best_in_class   = base_margin * 1.25
-        mx = max(best_in_class * 1.15, ebit_margin * 1.05, 0.6)  # scale max
-        mx = min(mx, 0.65)
-        def _ppos(v):
-            return min(98, max(2, (v / mx) * 100))
 
-        peers = [
-            ("Industry median", industry_median, "var(--ink-3)"),
-            (f"{ticker} 5-yr avg", base_margin,   "var(--ink-3)"),
-            ("Best-in-class",      best_in_class,  "var(--ink-3)"),
-        ]
-        # Build HTML benchmark bar
-        bm_html = '<div style="position:relative;height:96px;margin:24px 0;">'
-        bm_html += f'<div style="position:absolute;top:48px;left:0;right:0;height:2px;background:var(--ink);"></div>'
-        for pname, pv, pcolor in peers:
-            pos = _ppos(pv)
-            bm_html += f"""
-            <div style="position:absolute;left:{pos}%;transform:translateX(-50%);top:0;text-align:center;">
-              <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.06em;color:var(--ink-3);white-space:nowrap;margin-bottom:4px;">{pname}</div>
-              <div style="width:1px;height:30px;background:var(--ink-3);margin:0 auto;"></div>
-              <div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:2px;">{pv:.0%}</div>
-            </div>
-            """
-        # User pin
-        user_pos = _ppos(ebit_margin)
-        bm_html += f"""
-        <div style="position:absolute;left:{user_pos}%;transform:translateX(-50%);top:22px;">
-          <div style="background:var(--accent);color:var(--paper);padding:4px 10px;font-family:var(--mono);font-size:12px;font-weight:600;white-space:nowrap;transform:translateX(-50%);margin-left:50%;">{ebit_margin:.1%}</div>
-          <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--accent);margin:0 auto;"></div>
-          <div style="width:2px;height:26px;background:var(--accent);margin:0 auto;"></div>
-        </div>
-        """
-        bm_html += f'<div style="position:absolute;top:60px;left:0;font-family:var(--mono);font-size:10px;color:var(--ink-3);">0%</div>'
-        bm_html += f'<div style="position:absolute;top:60px;right:0;font-family:var(--mono);font-size:10px;color:var(--ink-3);">{mx:.0%}</div>'
-        bm_html += "</div>"
-        st.markdown(bm_html, unsafe_allow_html=True)
+        bm_peers  = [industry_median, base_margin, best_in_class]
+        bm_labels = ["Industry median", f"{ticker} 5-yr avg", "Best-in-class"]
+        bm_pcts   = [f"{v:.0%}" for v in bm_peers]
+
+        fig_bm = go.Figure()
+        # Baseline axis line
+        x_max = max(best_in_class * 1.15, ebit_margin * 1.05, 0.6)
+        x_max = min(x_max, 0.65)
+        # Peer markers
+        fig_bm.add_trace(go.Scatter(
+            x=bm_peers, y=[0] * len(bm_peers),
+            mode="markers+text",
+            marker=dict(symbol="line-ns", size=18, color="#5C6B7D",
+                        line=dict(color="#5C6B7D", width=2)),
+            text=bm_labels,
+            textposition="top center",
+            textfont=dict(size=9, color="#5C6B7D", family="IBM Plex Mono"),
+            hovertemplate="%{text}: %{x:.1%}<extra></extra>",
+            showlegend=False,
+        ))
+        # User selection marker
+        fig_bm.add_trace(go.Scatter(
+            x=[ebit_margin], y=[0],
+            mode="markers+text",
+            marker=dict(symbol="triangle-down", size=14, color="#2140C7"),
+            text=[f"{ebit_margin:.1%}"],
+            textposition="bottom center",
+            textfont=dict(size=11, color="#2140C7", family="IBM Plex Mono"),
+            hovertemplate="Your assumption: %{x:.1%}<extra></extra>",
+            showlegend=False,
+        ))
+        fig_bm.update_layout(
+            height=90, margin=dict(l=8, r=8, t=28, b=8),
+            **_PAPER_LAYOUT,
+            xaxis=dict(
+                range=[0, x_max],
+                tickformat=".0%",
+                showgrid=False, zeroline=False,
+                tickfont=dict(size=9, color="#5C6B7D", family="IBM Plex Mono"),
+            ),
+            yaxis=dict(visible=False, range=[-1, 1]),
+        )
+        st.plotly_chart(fig_bm, use_container_width=True)
 
         # Historical margin mini bar chart
         if hist_margins:
