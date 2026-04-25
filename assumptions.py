@@ -339,7 +339,7 @@ def _compute_ebit_margin(
     for yr in sorted(set(revenue) & set(ebit)):
         rev_v  = _safe_float(revenue.get(yr))
         ebit_v = _safe_float(ebit.get(yr))
-        if rev_v and ebit_v and rev_v != 0:
+        if rev_v is not None and ebit_v is not None and rev_v != 0:
             annual[yr] = ebit_v / rev_v
 
     if not annual:

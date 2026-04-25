@@ -47,7 +47,6 @@ INCOME_ALIASES: dict[str, list[str]] = {
         "InterestExpense",
         "Interest Expense Non Operating",
         "InterestExpenseNonOperating",
-        "Net Interest Income",
     ],
     "tax_expense": [
         "Tax Provision",
@@ -198,7 +197,7 @@ def _get_statement(ticker: yf.Ticker, statement: str) -> pd.DataFrame | None:
     """
     attr_map = {
         "income":    ["income_stmt", "financials"],
-        "balance":   ["balance_sheet", "quarterly_balance_sheet"],
+        "balance":   ["balance_sheet"],
         "cashflow":  ["cashflow", "cash_flow"],
     }
     for attr in attr_map.get(statement, []):
