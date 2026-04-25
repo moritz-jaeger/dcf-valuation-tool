@@ -175,7 +175,7 @@ header[data-testid="stHeader"] { display: none !important; }
 }
 [data-testid="stTextInput"] input {
   font-family: var(--serif) !important;
-  font-size: 4.5rem !important;
+  font-size: 2.5rem !important;
   color: var(--ink) !important;
   background: transparent !important;
   border: none !important;
@@ -984,16 +984,24 @@ def _render_chapter_growth() -> None:
         hist_lbls  = [f"FY{yr}" for yr in ry]
         fc_yrs     = list(range(1, 6))
         fc_revs    = [last_rev * (1 + growth_rate) ** i for i in fc_yrs] if last_rev else []
-        fc_lbls    = [f"+{i}y" for i in fc_yrs]
+        last_yr    = ry[-1] if ry else 2025
+        fc_lbls    = [f"FY{last_yr + i}" for i in fc_yrs]
 
         analyst_cagr = (arg.get("next_year", {}).get("value")
                         or arg.get("current_year", {}).get("value"))
-        analyst_lo   = assum.get("analyst_revenue_growth", {}).get("next_year", {}).get("value")
-        analyst_hi   = analyst_lo  # Use same for band approximation
 
         fig = go.Figure()
 
-        # Analyst band (if available)
+        # History first — sets categorical x-axis order (FY2023, FY2024, ...)
+        fig.add_trace(go.Scatter(
+            x=hist_lbls, y=[v / 1e9 if v else None for v in hist_revs],
+            mode="lines+markers",
+            line=dict(color="#5C6B7D", width=2),
+            marker=dict(color="#5C6B7D", size=5),
+            name="Historical", showlegend=True,
+        ))
+
+        # Analyst band — appended after history so forecast years follow historical years
         if analyst_cagr and last_rev:
             band_lo = [last_rev * (1 + max(0, analyst_cagr - 0.03)) ** i / 1e9 for i in fc_yrs]
             band_hi = [last_rev * (1 + analyst_cagr + 0.03) ** i / 1e9 for i in fc_yrs]
@@ -1010,16 +1018,7 @@ def _render_chapter_growth() -> None:
                 name="Analyst consensus", showlegend=True,
             ))
 
-        # History
-        fig.add_trace(go.Scatter(
-            x=hist_lbls, y=[v / 1e9 if v else None for v in hist_revs],
-            mode="lines+markers",
-            line=dict(color="#5C6B7D", width=2),
-            marker=dict(color="#5C6B7D", size=5),
-            name="Historical", showlegend=True,
-        ))
-
-        # Forecast
+        # Forecast — connects from last historical point into future years
         all_fc_x = hist_lbls[-1:] + fc_lbls
         all_fc_y = ([hist_revs[-1] / 1e9 if hist_revs else None]
                     + [v / 1e9 for v in fc_revs])
