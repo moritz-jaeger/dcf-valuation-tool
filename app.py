@@ -1256,7 +1256,7 @@ def _render_chapter_margin() -> None:
 
         wsum = eq_w + de_w
         if abs(wsum - 100.0) > 0.1:
-            st.warning(f"Weights sum to {wsum:.1f}% (should be 100%).")
+            st.warning(f"Weights sum to {wsum:.1f}% (should be 100%). Current: {wsum:.1f}%")
 
         st.markdown(f"""
         <div class="wacc-box" style="margin-top:36px;">
@@ -1378,7 +1378,7 @@ def _render_chapter_result() -> None:
     # 3-scenario cards
     if imp is not None and cur is not None:
         bear = imp * 0.72
-        bull = imp * 1.32
+        bull = imp * 1.45
 
         def _delta_html(v, ref):
             d = (v / ref - 1)
@@ -1739,9 +1739,9 @@ def _render_heatmap(table: dict, row_label: str, col_label: str) -> None:
         customdata=custom,
         colorscale=[
             [0.00, "#A33A2A"],
-            [0.40, "#D4907F"],
-            [0.50, "#EDE7D6"],
-            [0.60, "#8FAD8F"],
+            [0.45, "#D4907F"],
+            [0.50, "#F5F1E8"],
+            [0.55, "#8FAD8F"],
             [1.00, "#3B6B3B"],
         ],
         zmin=-zmax, zmid=0, zmax=zmax,

@@ -299,9 +299,12 @@ def fetch_financial_data(ticker_symbol: str) -> dict[str, Any]:
     # 2) ticker.info — fills beta and any gaps left by fast_info
     info: dict = {}
     try:
-        info = ticker.info or {}
+        info = ticker.info
+        if not isinstance(info, dict):
+            info = {}
     except Exception as exc:
         fetched_warnings.append(f"Could not retrieve ticker.info: {exc}")
+        info = {}
 
     def _info_field(keys: list[str], label: str) -> float | None:
         for k in keys:
