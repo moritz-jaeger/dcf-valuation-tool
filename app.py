@@ -208,10 +208,9 @@ header[data-testid="stHeader"] { display: none !important; }
 }
 [data-testid="stRadio"] label, [data-testid="stRadio"] p { color: var(--ink-2) !important; }
 
-/* ── Expanders — manila-folder treatment, sharp corners ─── */
+/* ── Expanders — sharp-cornered, ink top-rule ───────────── */
 [data-testid="stExpander"],
 [data-testid="stExpander"] > details,
-[data-testid="stExpander"] > div,
 [data-testid="stExpander"] details > summary {
   border-radius: 0 !important;
 }
@@ -224,47 +223,25 @@ header[data-testid="stHeader"] { display: none !important; }
   transition: border-top-color 0.18s !important;
 }
 [data-testid="stExpander"]:hover { border-top-color: var(--accent) !important; }
-[data-testid="stExpander"] details > summary,
-[data-testid="stExpander"] [data-testid="stExpanderToggleIcon"] + div,
-[data-testid="stExpander"] [role="button"] {
+[data-testid="stExpander"] details > summary {
   background: var(--paper-2) !important;
-  border-bottom: 1px solid var(--rule-2) !important;
   padding: 12px 18px !important;
+}
+[data-testid="stExpander"] summary p {
   font-family: var(--mono) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: 0.14em !important;
   text-transform: uppercase !important;
   color: var(--ink) !important;
+  margin: 0 !important;
 }
-[data-testid="stExpander"] details > summary p,
-[data-testid="stExpander"] [role="button"] p,
-[data-testid="stExpander"] summary span {
-  font-family: var(--mono) !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.14em !important;
-  text-transform: uppercase !important;
-  color: var(--ink) !important;
-}
-[data-testid="stExpander"] details[open] > summary,
-[data-testid="stExpander"] [role="button"][aria-expanded="true"] {
+[data-testid="stExpander"] details[open] > summary {
   background: var(--ink) !important;
-  color: var(--paper) !important;
-  border-bottom-color: var(--ink) !important;
+  border-bottom: 1px solid var(--ink) !important;
 }
-[data-testid="stExpander"] details[open] > summary p,
-[data-testid="stExpander"] details[open] > summary span,
-[data-testid="stExpander"] [role="button"][aria-expanded="true"] p,
-[data-testid="stExpander"] [role="button"][aria-expanded="true"] svg {
-  color: var(--paper) !important;
-  fill: var(--paper) !important;
-}
-[data-testid="stExpander"] [data-testid="stExpanderDetails"],
-[data-testid="stExpander"] details > div:not(summary) {
-  padding: 18px 20px !important;
-  background: white !important;
-}
+[data-testid="stExpander"] details[open] summary p { color: var(--paper) !important; }
+[data-testid="stExpander"] details[open] summary svg { fill: var(--paper) !important; }
 
 /* ── Tabs ───────────────────────────────────────────────── */
 [data-testid="stTabs"] [role="tab"] { color: var(--ink-3) !important; font-weight: 500 !important; }
