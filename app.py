@@ -175,15 +175,16 @@ header[data-testid="stHeader"] { display: none !important; }
 }
 [data-testid="stTextInput"] input {
   font-family: var(--serif) !important;
-  font-size: 2.5rem !important;
+  font-size: 1.75rem !important;
+  line-height: 1.2 !important;
   color: var(--ink) !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 2px solid var(--ink) !important;
   border-radius: 0 !important;
   text-align: center !important;
-  letter-spacing: -0.04em !important;
-  padding: 0 0 10px !important;
+  letter-spacing: -0.02em !important;
+  padding: 8px 0 10px !important;
   box-shadow: none !important;
 }
 [data-testid="stTextInput"] input:focus {
@@ -759,8 +760,47 @@ def _render_chapter_snapshot() -> None:
             hi = max(prices)
             st.markdown(f'<div class="meta" style="margin-top:-16px;margin-bottom:24px;">12-month price · {_px(lo)} low · {_px(hi)} high</div>', unsafe_allow_html=True)
 
+        # Inline risk dashboard — fills the empty left-column space
+        st.markdown(
+            '<div class="meta" style="margin-bottom:10px;">Financial health</div>'
+            '<hr class="hr-dark" style="margin-bottom:12px;">',
+            unsafe_allow_html=True,
+        )
+        metrics = risk.get("metrics", {})
+        COLOR_MAP = {
+            "green": ("rgba(59,107,59,0.15)",  "var(--moss)"),
+            "amber": ("rgba(245,158,11,0.15)", "#F59E0B"),
+            "red":   ("rgba(163,58,42,0.15)",  "var(--rust)"),
+            "na":    ("var(--rule)",            "var(--ink-3)"),
+        }
+        score = risk.get("overall_score")
+        lbl   = risk.get("overall_label", "")
+        if score is not None:
+            score_color = "var(--moss)" if score >= 7 else "#F59E0B" if score >= 5 else "var(--rust)"
+            st.markdown(f"""
+            <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:12px;">
+              <span style="font-family:var(--mono);font-size:1.4rem;font-weight:700;color:{score_color};">{score:.0f}/10</span>
+              <span style="font-size:0.82rem;color:var(--ink-2);">{lbl}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        rows_html = '<div style="display:flex;flex-direction:column;gap:6px;">'
+        for m in metrics.values():
+            _, accent = COLOR_MAP.get(m["rating"], ("var(--rule)", "var(--ink-3)"))
+            rows_html += (
+                f'<div style="display:flex;align-items:center;justify-content:space-between;'
+                f'padding:8px 0;border-bottom:1px solid var(--rule);">'
+                f'<div style="display:flex;align-items:center;gap:10px;">'
+                f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{accent};"></span>'
+                f'<span style="font-size:0.82rem;color:var(--ink);">{m["label"].split("  ")[0]}</span>'
+                f'</div>'
+                f'<span style="font-family:var(--mono);font-size:0.82rem;color:{accent};font-weight:600;">{m["value_str"]}</span>'
+                f'</div>'
+            )
+        rows_html += '</div>'
+        st.markdown(rows_html, unsafe_allow_html=True)
+
         # Continue button
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
         if st.button("Continue to growth →", use_container_width=False, key="snap_cont"):
             st.session_state.chapter = 2
             st.rerun()
@@ -813,26 +853,18 @@ def _render_chapter_snapshot() -> None:
 
     _hr()
 
-    # Risk dashboard (collapsible)
-    with st.expander("Risk Dashboard", expanded=False):
+    # Detailed risk cards + FCF table (collapsible)
+    with st.expander("Risk dashboard — full breakdown", expanded=False):
         st.markdown(
             '<p style="font-size:0.82rem;color:var(--ink-2);margin:0 0 0.75rem;line-height:1.6;">'
             'Six financial health checks, rated '
             '<span style="color:var(--moss);font-weight:600;">● Healthy</span> &nbsp;·&nbsp; '
             '<span style="color:#F59E0B;font-weight:600;">● Watch</span> &nbsp;·&nbsp; '
-            '<span style="color:var(--rust);font-weight:600;">● Concern</span>. '
-            'Overall score shown as 0–10.</p>',
+            '<span style="color:var(--rust);font-weight:600;">● Concern</span>.</p>',
             unsafe_allow_html=True,
         )
-        metrics = risk.get("metrics", {})
-        COLOR_MAP = {
-            "green": ("rgba(59,107,59,0.15)",  "var(--moss)"),
-            "amber": ("rgba(245,158,11,0.15)", "#F59E0B"),
-            "red":   ("rgba(163,58,42,0.15)",  "var(--rust)"),
-            "na":    ("var(--rule)",            "var(--ink-3)"),
-        }
         cards_html = '<div class="risk-grid">'
-        for m in metrics.values():
+        for m in risk.get("metrics", {}).values():
             border_color, accent_color = COLOR_MAP.get(m["rating"], ("var(--rule)", "var(--ink-3)"))
             thresh = _RISK_DESC.get(m["label"], "")
             cards_html += (
@@ -847,19 +879,8 @@ def _render_chapter_snapshot() -> None:
                 f'</div>'
             )
         cards_html += '</div>'
-        score = risk.get("overall_score")
-        lbl   = risk.get("overall_label", "")
-        if score is not None:
-            score_color = "var(--moss)" if score >= 7 else "#F59E0B" if score >= 5 else "var(--rust)"
-            st.markdown(f"""
-            <div style="display:flex;align-items:center;gap:16px;margin:1rem 0 0.5rem;">
-              <span style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:{score_color};">{score:.0f}/10</span>
-              <span style="font-size:0.82rem;color:var(--ink-2);">{lbl}</span>
-            </div>
-            """, unsafe_allow_html=True)
         st.markdown(cards_html, unsafe_allow_html=True)
 
-    # FCF table (collapsible)
     with st.expander("Historical Free Cash Flow", expanded=False):
         _render_fcf_table(data)
 
@@ -984,7 +1005,7 @@ def _render_chapter_growth() -> None:
         hist_lbls  = [f"FY{yr}" for yr in ry]
         fc_yrs     = list(range(1, 6))
         fc_revs    = [last_rev * (1 + growth_rate) ** i for i in fc_yrs] if last_rev else []
-        last_yr    = ry[-1] if ry else 2025
+        last_yr    = int(ry[-1]) if ry else 2025
         fc_lbls    = [f"FY{last_yr + i}" for i in fc_yrs]
 
         analyst_cagr = (arg.get("next_year", {}).get("value")
