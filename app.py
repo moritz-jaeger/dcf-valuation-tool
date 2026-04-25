@@ -175,16 +175,17 @@ header[data-testid="stHeader"] { display: none !important; }
 }
 [data-testid="stTextInput"] input {
   font-family: var(--serif) !important;
-  font-size: 1.75rem !important;
-  line-height: 1.2 !important;
+  font-size: 3.25rem !important;
+  font-weight: 400 !important;
+  line-height: 1.1 !important;
   color: var(--ink) !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 2px solid var(--ink) !important;
   border-radius: 0 !important;
   text-align: center !important;
-  letter-spacing: -0.02em !important;
-  padding: 8px 0 10px !important;
+  letter-spacing: -0.03em !important;
+  padding: 14px 0 18px !important;
   box-shadow: none !important;
 }
 [data-testid="stTextInput"] input:focus {
@@ -196,12 +197,12 @@ header[data-testid="stHeader"] { display: none !important; }
 
 /* ── Landing input row (tight editorial layout) ─────────── */
 .landing-input-row + div [data-testid="stHorizontalBlock"] {
-  max-width: 560px !important;
   align-items: flex-end !important;
   gap: 24px !important;
 }
 .landing-input-row + div [data-testid="stHorizontalBlock"] .stButton > button {
-  padding: 11px 24px !important;
+  padding: 22px 28px !important;
+  font-size: 1rem !important;
 }
 .landing-chips + div [data-testid="stHorizontalBlock"] {
   gap: 4px !important;
