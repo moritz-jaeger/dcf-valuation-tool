@@ -1174,49 +1174,49 @@ def _render_chapter_margin() -> None:
         )
         ebit_margin = ebit_margin_pct / 100
 
-        # Peer benchmark — Plotly scatter (replaces fragile absolute-positioned HTML)
+        # Peer benchmark — 4-cell editorial comparison strip
         industry_median = base_margin * 0.85
         best_in_class   = base_margin * 1.25
 
-        bm_peers  = [industry_median, base_margin, best_in_class]
-        bm_labels = ["Industry median", f"{ticker} 5-yr avg", "Best-in-class"]
+        cells = [
+            ("Industry median",        industry_median, False),
+            (f"{ticker} 5-yr avg",     base_margin,     False),
+            ("Your assumption",        ebit_margin,     True),
+            ("Best-in-class",          best_in_class,   False),
+        ]
+        # Delta vs the 5-yr average for the user's cell
+        delta = ebit_margin - base_margin
+        delta_str = f"{delta:+.1%} vs 5-yr avg"
+        delta_color = "var(--moss)" if delta >= 0 else "var(--rust)"
 
-        fig_bm = go.Figure()
-        x_max = max(best_in_class * 1.15, ebit_margin * 1.05, 0.6)
-        x_max = min(x_max, 0.65)
-        fig_bm.add_trace(go.Scatter(
-            x=bm_peers, y=[0] * len(bm_peers),
-            mode="markers+text",
-            marker=dict(symbol="line-ns", size=18, color="#5C6B7D",
-                        line=dict(color="#5C6B7D", width=2)),
-            text=bm_labels,
-            textposition="top center",
-            textfont=dict(size=9, color="#5C6B7D", family="IBM Plex Mono"),
-            hovertemplate="%{text}: %{x:.1%}<extra></extra>",
-            showlegend=False,
-        ))
-        fig_bm.add_trace(go.Scatter(
-            x=[ebit_margin], y=[0],
-            mode="markers+text",
-            marker=dict(symbol="triangle-down", size=14, color="#2140C7"),
-            text=[f"{ebit_margin:.1%}"],
-            textposition="bottom center",
-            textfont=dict(size=11, color="#2140C7", family="IBM Plex Mono"),
-            hovertemplate="Your assumption: %{x:.1%}<extra></extra>",
-            showlegend=False,
-        ))
-        fig_bm.update_layout(
-            height=90, margin=dict(l=8, r=8, t=28, b=8),
-            **_PAPER_LAYOUT,
-            xaxis=dict(
-                range=[0, x_max],
-                tickformat=".0%",
-                showgrid=False, zeroline=False,
-                tickfont=dict(size=9, color="#5C6B7D", family="IBM Plex Mono"),
-            ),
-            yaxis=dict(visible=False, range=[-1, 1]),
+        bm_html = (
+            '<div style="display:grid;grid-template-columns:repeat(4,1fr);'
+            'border:1px solid var(--ink);margin:20px 0 8px;">'
         )
-        st.plotly_chart(fig_bm, use_container_width=True)
+        for i, (label, value, is_user) in enumerate(cells):
+            bg     = "var(--paper-2)" if is_user else "white"
+            color  = "var(--accent)"  if is_user else "var(--ink)"
+            border = "" if i == 0 else "border-left:1px solid var(--ink);"
+            sub_html = (
+                f'<div style="font-family:var(--mono);font-size:10.5px;'
+                f'color:{delta_color};margin-top:6px;">{delta_str}</div>'
+                if is_user else
+                '<div style="font-family:var(--mono);font-size:10.5px;'
+                'color:var(--ink-3);margin-top:6px;">&nbsp;</div>'
+            )
+            bm_html += (
+                f'<div style="padding:14px 16px;background:{bg};{border}">'
+                f'<div style="font-family:var(--mono);font-size:9.5px;'
+                f'letter-spacing:0.12em;text-transform:uppercase;'
+                f'color:var(--ink-3);margin-bottom:8px;">{label}</div>'
+                f'<div style="font-family:var(--mono);font-size:1.5rem;'
+                f'font-weight:600;letter-spacing:-0.02em;color:{color};">'
+                f'{value:.1%}</div>'
+                f'{sub_html}'
+                f'</div>'
+            )
+        bm_html += "</div>"
+        st.markdown(bm_html, unsafe_allow_html=True)
 
         # Historical margin mini bar chart
         if hist_margins:
